@@ -42,7 +42,10 @@
 #
 #   # ~/.gutenrc
 #   @a = 1
+#   @path = Pathname('/home')
 #
+#   # a.rb
+#   require "pathname"
 #   option = O.load("~/.gutenrc")
 #   option.a #=> 1
 #
@@ -136,7 +139,7 @@ class O < Hash
 		# @param [String] name
 		# @return [O] option
 		def relative_load name
-			#pd caller
+			pd caller if $TEST
 			a,file, line, method = caller[0].match(/^(.*):(\d+):.*`(.*)'$/).to_a
 			raise LoadError, "#{type} is called in #{file}" if file=~/\(.*\)/ # eval, etc.
 
@@ -220,7 +223,7 @@ class O < Hash
 	def inspect 
 		rst = "<#O "
 		@_data.each do |k,v|
-			rst << "#{k}:#{v} "
+			rst << "#{k}:#{v.inspect} "
 		end
 		rst << " >" 
 	end

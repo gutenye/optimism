@@ -4,7 +4,6 @@ base = 1
 @a = base
 
 @b = O do
-	p @a
 	@a = 2
 	@c = base
 end
