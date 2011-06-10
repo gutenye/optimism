@@ -7,16 +7,6 @@ O, a configuration libraray for Ruby
 **Documentation**: [http://rubydoc.info/gems/o/frames](http://rubydoc.info/gems/o/frames) <br/>
 **Issue Tracker**: [https://github.com/GutenLinux/o/issues](https://github.com/GutenLinux/o/issues) <br/>
 
-Overview
---------
-
-	descripe your prjoect here.
-
-Features
---------
-
-	a clearly list of features.
-
 Introduction
 -------------
 
@@ -100,7 +90,7 @@ Install
 Resources
 ---------
 
-	some related resources to help each other.
+[configuration](https://github.com/ahoward/configuration)
 
 Copyright
 ---------
