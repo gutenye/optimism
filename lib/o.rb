@@ -228,6 +228,8 @@ class O < Hash
 		rst << " >" 
 	end
 
+	alias to_s inspect
+
 end
 
 module Kernel
