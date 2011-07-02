@@ -38,6 +38,8 @@ class O < Hash
 		#
 		# @example
 		#   option = O.load("~/.gutenrc")
+		#
+		#   option = O.load("/absolute/path/a.rb")
 		#   
 		#   O::Path << "/home"
 		#   option = O.load("guten")  #=> try guten.rb; then try guten
@@ -50,6 +52,8 @@ class O < Hash
 			if name =~ /^~/
 				file = File.expand_path(name)
 				path = file if File.exists?(file)
+			elsif File.absolute_path(name) == name
+				path = name if File.exists?(name)
 			else
 				catch :break do
 					PATH.each  do |p|
@@ -138,6 +142,10 @@ class O < Hash
 		self
 	end
 
+	def _merge! data
+	end
+
+
 	#
 	# _method goes to @_data.send(_method, ..)
 	# method? #=> !! @_data[:method]
@@ -150,7 +158,15 @@ class O < Hash
 		elsif method =~ /(.*)\?$/
 			!! @_data[$1.to_sym]
 		elsif method =~ /^_(.*)/
-			@_data.send($1.to_sym, *args, &blk)
+			method = $1.to_sym
+			args.map!{|arg| O===arg ? arg._data : arg} 
+			rst = @_data.send(method, *args, &blk)
+
+			if [:merge!].include method
+				self
+			elsif [:merge].include method
+				O.new(rst)
+			end
 		else
 			@_data[method]
 		end
