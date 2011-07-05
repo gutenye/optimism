@@ -1,11 +1,11 @@
 O, a configuration libraray for Ruby
 ====================================
 
-**Homepage**: [https://github.com/GutenLinux/o](https://github.com/GutenLinux/o) <br/>
+**Homepage**: [https://github.com/GutenYe/o](https://github.com/GutenYe/o) <br/>
 **Author**:	Guten <br/>
 **License**: MIT-LICENSE <br/>
 **Documentation**: [http://rubydoc.info/gems/o/frames](http://rubydoc.info/gems/o/frames) <br/>
-**Issue Tracker**: [https://github.com/GutenLinux/o/issues](https://github.com/GutenLinux/o/issues) <br/>
+**Issue Tracker**: [https://github.com/GutenYe/o/issues](https://github.com/GutenYe/o/issues) <br/>
 
 Introduction
 -------------

@@ -11,7 +11,7 @@ a coonfiguration libraray for Ruby
 
 	s.author = "Guten"
 	s.email = "ywzhaifei@Gmail.com"
-	s.homepage = "http://github.com/GutenLinux/o"
+	s.homepage = "http://github.com/GutenYe/o"
 	s.rubyforge_project = "xx"
 
 	s.files = `git ls-files`.split("\n")
