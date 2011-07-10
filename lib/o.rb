@@ -4,6 +4,8 @@
 #
 #
 class O < Hash
+	autoload :VERSION,	"o/version"
+
 	# PATH for O.load
 	PATH = []
 	Error = Exception.new 

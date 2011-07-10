@@ -1,5 +1,5 @@
-$: << "."
-require "version"
+$: << "lib"
+require "o/version"
 
 Gem::Specification.new do |s|
 	s.name = "o"
