@@ -1,4 +1,4 @@
-O, a configuration libraray for Ruby
+O, a configuration/setting libraray for Ruby
 ====================================
 
 **Homepage**: [https://github.com/GutenYe/o](https://github.com/GutenYe/o) <br/>
@@ -12,12 +12,12 @@ Introduction
 
 	option = O.new
 
-	# assigment
+	# assigment, either way
 	option["a"] = 1
 	option[:a] = 1
 	option.a = 1
 
-	# access
+	# access, either way
 	option["a"] 
 	option[:a] 
 	option.a 
@@ -90,7 +90,17 @@ Install
 Resources
 ---------
 
-[configuration](https://github.com/ahoward/configuration)
+* [configatron](https://github.com/markbates/configatron) A super cool, simple, and feature rich configuration system for Ruby apps 
+* [konfigurator](https://github.com/nu7hatch/konfigurator) Small and flexible configuration toolkit inspired i.a. by Sinatra settings
+* [configliere](https://github.com/mrflip/configliere) Wise, discreet configuration for ruby scripts: integrate config files, environment variables and command line with no fuss
+* [simpleconfig](https://github.com/lukeredpath/simpleconfig) make application-wide configuration settings easy to set and access in an object-oriented fashion
+* [configuration](https://github.com/ahoward/configuration) pure ruby scoped configuration files 
+* [rconfig](https://github.com/rahmal/rconfig) The complete solution for Ruby Configuration Management <br>
+<br>
+* [configurator](https://github.com/brennandunn/configurator) Fatten your models with key/value pairs
+* [configlet](https://github.com/jbarnette/configlet) Configuration mismanagement.
+* [configr](https://github.com/joshnesbitt/configr) A more elegant approach to creating and accessing configuration values
+* [config_newton](https://github.com/intridea/config_newton) ConfigNewton is a simple tool for library authors to provide class-level configuration
 
 Copyright
 ---------
