@@ -38,9 +38,11 @@ EOF
 				d do |c|
 					a 2
 				end
-
 			end
-			O.pd rc
+
+			pd rc.i.not.exists
+			#pd rc
+
 		end
 	end
 

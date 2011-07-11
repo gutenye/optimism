@@ -7,7 +7,7 @@ O, a configuration libraray for Ruby
 **Documentation**: [http://rubydoc.info/gems/o/frames](http://rubydoc.info/gems/o/frames) <br/>
 **Issue Tracker**: [https://github.com/GutenYe/o/issues](https://github.com/GutenYe/o/issues) <br/>
 
-completed documentation: localhost.com/guten
+for completed documentation, see [localhost.com/not_yet](http://localhost.com/not_yet)
 
 Features
 --------
@@ -22,10 +22,10 @@ Introduction
 
 do configuration at three levels: system, user, cmdline
 
-1. lib/guten/rc.rb 
-2. ~/.gutenrc
-3. $ guten --list
-	
+	lib/guten/rc.rb   # system level
+	~/.gutenrc        # user level
+	$ guten --list    # cmdline level
+		
 	module Guten
 		Rc = O.require("guten/rc") + O.require("~/.gutenrc")
 		Rc.list = 12
@@ -68,6 +68,8 @@ alternative syntax
 
 ### initialize ###
 
+either way is fine
+
 	Rc = O.new
 	Rc = O.require "guten/rc"  # from file
 	Rc = O do 
@@ -76,6 +78,9 @@ alternative syntax
 	Rc = O[a:1]  # from hash   
 	Rc._merge! O_or_Hash  
 
+file: "guten/rc.rb"
+
+	a 1
 
 
 ### assignment & access ###
@@ -83,7 +88,7 @@ alternative syntax
 either way is fine
 
 	Rc.age 1
-	Rc.age 1
+	Rc.age = 1
 	Rc[:age] = 1
 	Rc["age"] = 1
 	---
@@ -101,32 +106,53 @@ either way is fine
 ### node ###
 
 	Rc.a.b.c 1
-	p Rc.a.b.c #=> 1
+	p Rc.a.b.c #=> <#Fixnum 1>
 	p Rc.a.b   #=> <#O>
 	p Rc.a     #=> <#O>
-	p Rc.i.dont.exists #=> nil # by O.new(default=nil)
+	p Rc.i.dont.exists #=> <#O> #check use #_empty?
 
 ### variable & path ###
 
-	age 1
-	myage age 
-	my do
-		age 2
-		friend do
-			age 3
-			p age     #=> 3
-			p __.age  #=> 2  relative
-			p ___.age #=> 1
-			p _.age   #=> 1  root
+	O do
+		age 1
+		p age  #=> 1
+		my do
+			age 2
+			friend do
+				age 3
+				p age     #=> 3
+				p __.age  #=> 2  relative
+				p ___.age #=> 1
+				p _.age   #=> 1  root
+			end
 		end
 	end
 
 ### namespace ###
 
-	mail.stmp.address "stmp.gmail.com"
-	mail.stmp do
-		address "stmp.gmail.com"
+either way is fine
+
+	O do
+		mail.stmp.address "stmp.gmail.com"
+		mail.stmp do
+			address "stmp.gmail.com"
+		end
 	end
+
+another example
+
+	O do
+		age 1 
+
+		my do
+			age 2 
+		end
+
+		my.friend do
+			age 3 
+		end
+	end
+
 
 ### group ###
 
@@ -148,8 +174,9 @@ use namespace or use some seperate files like rails.
 
 ### semantic ###
 
-	is_started no # yes ...
-
+	O do
+		is_started no # yes ...
+	end
 
 ### hash compatibility ###
 
@@ -166,9 +193,9 @@ use namespace or use some seperate files like rails.
 
 ### access builtin method inside block ###
 
-	O do
-		O.p 1   # call builtin's 'p' method
-		self.p = 12
+	Rc = O do
+		raise "error"     # is a data. Rc.raise #=> "error"
+		O.raise "error"   # call builtin 'raise' method
 	end
 
 ### another sugar syntax ###
@@ -189,7 +216,7 @@ this way is experiment.
 		username "guten"
 		
 
-### some other Examples ###
+### some other examples ###
 
 	name do
 		first "Guten"
