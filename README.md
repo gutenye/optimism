@@ -28,7 +28,7 @@ do configuration at three levels: system, user, cmdline
 		
 	module Guten
 		Rc = O.require("guten/rc") + O.require("~/.gutenrc")
-		Rc.list = 12
+		Rc.list = true
 	end
 
 
@@ -168,15 +168,20 @@ use namespace or use some seperate files like rails.
 ### computed attribute ###
 
 	Rc = O do
-		time proc{|Time.now}
+		time proc{|n| Time.now}
 	end
 	p Rc.time # print current time. no need Rc.time.call()
+	p Rc.time(2) # call time
+	Rc.time = 2 # assign new value
+	p Rc[:time] #=> <#Proc>
 
 ### semantic ###
 
 	O do
 		is_started no # yes ...
 	end
+
+for a list of semantic methods, see O::Semantics
 
 ### hash compatibility ###
 
@@ -194,9 +199,11 @@ use namespace or use some seperate files like rails.
 ### access builtin method inside block ###
 
 	Rc = O do
-		raise "error"     # is a data. Rc.raise #=> "error"
-		O.raise "error"   # call builtin 'raise' method
+		sleep 10     # is a data. Rc.sleep #=> 10
+		O.sleep 10   # call builtin 'sleep' method
 	end
+
+a list of blocked methods is in O::BUILTIN_METHODS
 
 ### another sugar syntax ###
 
