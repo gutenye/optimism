@@ -1,17 +1,94 @@
-#
-# internal: store data in a Hash, the key of the Hash is always converted to symbol.
-#
-#
-#
-class O < Hash
-	autoload :VERSION,	"o/version"
+libdir = File.dirname(__FILE__)
+$LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
 
-	# PATH for O.load
-	PATH = []
+=begin
+
+=end
+
+class O
+	autoload :VERSION, "o/version"
+
 	Error = Exception.new 
 	LoadError = Exception.new(Error)
 
+	BUILTIN_METHODS = [ :p, :pd, :raise, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open]
+
 	class O_Eval
+		class << self
+			def eval content=nil, &blk
+				o_eval = O_Eval.new nil
+				content ? o_eval.instance_eval(content) : o_eval.instance_eval(&blk)
+				o_eval._root
+			end
+		end
+
+		undef_method *BUILTIN_METHODS
+
+		# for <#O_Eval>
+		attr_accessor :_root, :_child, :_parent
+
+		# for <#O>. each <#O_Eval> has a <#O>
+		attr_accessor :_o
+
+		def initialize root
+			@_root = root
+			@_child = {}
+		end
+
+		def _parent
+			@_parent || nil
+		end
+
+		def _root
+			@_root || self
+		end
+
+		def _o
+			@_o || O.new
+		end
+
+		# a.b.c 1
+		#   ROOT -> a -> b -> c is obj
+		#   ROOT -> a -> b is <#O_Eval>  
+		#   ROOT -> a is <#O_Eval>
+		#
+		# a 1
+		#   ROOT -> a : 1
+		def method_missing name, *args, &blk
+			O.pd 'o_eval missing', name
+			#O.pd name, args, blk
+		
+			
+			# O.p a
+
+			# .name
+			# .name &blk
+			#
+			# a.b
+			if args.empty?
+
+
+				next_o_eval = O_Eval.new(_root)
+				next_o_eval._parent = self
+				self._child[name] = next_o_eval
+				next_o_eval.instance_eval(&blk) if blk
+
+				next_o_eval._o = _o._append(O.new)
+
+				return next_o_eval
+
+			# .name value 
+			# a 1
+			# a.b.c 1
+			else
+				O.pd 'a 1', name, args
+				self._child[name] = args[0]
+				#_o._child[name] = args[0]
+				#return _o
+			end
+
+		end
+
 		def _data
 			_data = {}
 			self.instance_variables.each do |k|
@@ -21,20 +98,64 @@ class O < Hash
 			end
 			_data
 		end
+
+		#
+		# <#Node 
+		#   :b => 1
+		#   :c => 2
+		#   :d => <#Node
+		#     :c => 2>> 
+		def inspect(indent="  ")
+			o={rst: ""}
+			o[:rst] << "<#O_Eval\n"
+			_child.each do |k,v|
+				o[:rst] << "#{indent}#{k.inspect} => "
+				o[:rst] << (O_Eval === v ? "#{v.inspect(indent+"  ")}\n" : "#{v.inspect}\n")
+			end
+			o[:rst].rstrip! << ">"
+		end
+
 	end
 
 	class << self
-		# convert <#Hash> to <#O>
+
+		public *BUILTIN_METHODS 
+
+		def eval content=nil, &blk
+			o = O.new nil
+			content ? o.instance_eval(content) : o.instance_eval(&blk)
+			o._root
+		end
+
+		# convert hash, O to O
+		# @param [O,Hash] data
+		def [] data
+			case data
+			when O
+				data
+			when Hash
+				o = O.new
+				o._child = data
+				o
+			end
+		end
+
+		# get hash data from obj
 		#
-		# @param [hash] hash
-		# @return O
-		def from_hash hash
-			o = O.new
-			o._replace hash
+		# @param [O, Hash] obj
+		#
+		# @return [Hash] 
+		def get obj
+			case obj
+			when Hash
+				obj
+			when O
+				obj._child
+			end
 		end
 
 		# load a configuration file,
-		# support PATH, and '~/.gutenrc'
+		# use $: and support '~/.gutenrc'
 		#
 		# first try name.rb, then use name
 		#
@@ -51,14 +172,20 @@ class O < Hash
 		# @return [O]
 		def load name
 			path = nil
+
+			# ~/.gutenrc
 			if name =~ /^~/
 				file = File.expand_path(name)
 				path = file if File.exists?(file)
+
+			# /absolute/path/to/rc
 			elsif File.absolute_path(name) == name
 				path = name if File.exists?(name)
+
+			# relative/rc
 			else
 				catch :break do
-					PATH.each  do |p|
+					$:.each do |p|
 						['.rb', ''].each {|ext|
 							file = File.join(p, name+ext)
 							if File.exists? file
@@ -72,122 +199,154 @@ class O < Hash
 
 			raise LoadError, "can't find file -- #{name}" unless path
 
-			eval_file path
+			 O_Eval.eval File.read(path)
 		end
-
-		# relative load a configuration file
-		# @see load
-		#
-		# @param [String] name
-		# @return [O] option
-		def relative_load name
-			pd caller if $TEST
-			a,file, line, method = caller[0].match(/^(.*):(\d+):.*`(.*)'$/).to_a
-			raise LoadError, "#{type} is called in #{file}" if file=~/\(.*\)/ # eval, etc.
-
-			file = File.readlink(file) if File.symlink?(file)
-
-			path = nil
-			[".rb", ""].each do |ext|
-				f = File.absolute_path(File.join(File.dirname(file), name+ext))
-				if File.exists?(f)
-					path = f
-					break
-				end
-			end
-
-			raise LoadError, "can't find file -- #{name}" unless path
-
-			eval_file path
-		end
-
-		private
-		def eval_file path
-			content = File.open(path){|f| f.read}
-			o_eval = O_Eval.new
-			o_eval.instance_eval(content)
-			O.from_hash(o_eval._data)
-		end
-
 	end
 
-	attr_reader :_data
+	attr_accessor :_parent, :_child, :_root
 
-	def initialize default=nil, &blk
-		@_data = Hash.new(default)
-		if blk
-			o_eval = O_Eval.new
-			o_eval.instance_eval &blk
-			@_data.merge!(o_eval._data)
-		end
+	def initialize default=nil, options={}, &blk
+		@_root = options[:_root]
+		@_child = Hash.new(default)
+		instance_eval &blk if blk
+	end
+
+	def _root
+		@_root || self
 	end
 
 	def []= key, value
-		@_data[key.to_sym] = value
+		key = key.respond_to?(:to_sym) ? key.to_sym : key
+		@_child[key] = value
 	end
 
 	def [] key
-		@_data[key.to_sym]
+		key = key.respond_to?(:to_sym) ? key.to_sym : key
+		@_child[key]
 	end
 
-	def + other
-		O.new(@_data, other._data)
+	def _child= obj
+		@_child = O.get(obj)
 	end
 
-	def _replace data
-		case data
-		when Hash
-			@_data = data
-		when O
-			@_data = data._data
-		end
+	def _merge! obj
+		_child.merge! O.get(obj)
 		self
 	end
 
-	def _merge! data
+	def _merge obj
+		data = _child.merge(O.get(obj))
+		O.new(data)
 	end
 
+	def _replace obj
+		@_child = O.get(obj)
+		self
+	end
+
+	def _dup
+		o = O.new
+		o._child = _child.dup
+		o
+	end
+
+	def + other
+		raise Error, "not support type for + -- #{other.inspect}" unless O === other
+		O.new(_child, other._child)
+	end
+
+	# append a new node<#O> to current node<#O>, and move to next node.
+	# @param [O] o
+	# @return [O] next_o
+	def _append next_o
+		next_o._parent = self
+		self._child[name] = next_o
+		next_o
+	end
 
 	#
-	# _method goes to @_data.send(_method, ..)
-	# method? #=> !! @_data[:method]
-	# method #=> @_data[:method]
-	# method=value #=> @_data[:method]=value
+	# .name? 
+	# .name= value 
+	# .name value 
+	# ._name
 	#
-	def method_missing method, *args, &blk
-		if method =~ /(.*)=$/
-			@_data[$1.to_sym] = args[0]
-		elsif method =~ /(.*)\?$/
-			!! @_data[$1.to_sym]
-		elsif method =~ /^_(.*)/
-			method = $1.to_sym
-			args.map!{|arg| O===arg ? arg._data : arg} 
-			rst = @_data.send(method, *args, &blk)
+	# .c 
+	# .a.b.c
+	#
+	def method_missing name, *args, &blk
+		pd 'missing', name, args, blk
 
-			if [:merge!].include method
-				self
-			elsif [:merge].include method
-				O.new(rst)
+		# path: root
+		if name == :_
+			return _root
+
+		# relative path.
+		elsif name =~ /^__+$/
+			num = name.to_s.count('_') - 1
+			node = self
+			num.times {
+				return unless node
+				node = node._parent
+			}
+			return node
+
+		# .name=
+		elsif name =~ /(.*)=$/
+			return @_child[$1.to_sym] = args[0]
+
+		# .name?
+		elsif name =~ /(.*)\?$/
+			return !! @_child[$1.to_sym]
+
+		# ._name
+		elsif name =~ /^_(.*)/
+			name = $1.to_sym
+			args.map!{|arg| O===arg ? arg._child : arg} 
+			return @_child.send(name, *args, &blk)
+
+		# a.c  # return data if has :c
+		# a.c {}  # create new <#O> if no :c and has a block
+		# a.c  # if no :c, reverse travel the tree to find :c
+		#
+		elsif args.empty?
+			if @_child.has_key?(name)
+				return @_child[name]
+
+			else
+				next_o = O.new(nil, {_root: _root})
+				next_o._parent = self
+				self._child[name] = next_o
+				next_o.instance_eval(&blk) if blk
+				#next_o._o = _o._append(O.new)
+				return next_o
 			end
+
+		# .name value
 		else
-			@_data[method]
+			@_child[name] = args[0]
+			return args[0]
 		end
 	end
 
-	def inspect 
-		rst = "<#O "
-		@_data.each do |k,v|
-			rst << "#{k}:#{v.inspect} "
+	#
+	# <#O 
+	#   :b => 1
+	#   :c => 2
+	#   :d => <#O
+	#     :c => 2>> 
+	def inspect(indent="  ")
+		o={rst: ""}
+		o[:rst] << "<#O\n"
+		_child.each do |k,v|
+			o[:rst] << "#{indent}#{k.inspect} => "
+			o[:rst] << (O === v ? "#{v.inspect(indent+"  ")}\n" : "#{v.inspect}\n")
 		end
-		rst << " >" 
+		o[:rst].rstrip! << ">"
 	end
 
 	alias to_s inspect
 
-end
+	private
 
-module Kernel
-	def O default=nil, &blk
-		O.new(default, &blk)
-	end
+
 end

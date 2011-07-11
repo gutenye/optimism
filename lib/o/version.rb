@@ -1,4 +1,4 @@
-module O
+class O
 	module VERSION
 		MAJOR = 1
 		MINOR = 0
