@@ -203,7 +203,7 @@ a list of blocked methods is in O::BUILTIN_METHODS
 
 ### another sugar syntax ###
 
-it likes yaml-style.  this way is experiment. used in file syntax only
+it likes yaml-style. used in file syntax only
 
 	# file: guten/rc.rb
 	a:
@@ -224,11 +224,23 @@ it likes yaml-style.  this way is experiment. used in file syntax only
 
 ### some other examples ###
 
-	name do
-		first "Guten"
-		last  "Ye"
-		is    "#{first} #{last}"
+	O do
+		name do
+			first "Guten"
+			last  "Ye"
+			is    "#{first} #{last}"
+		end
 	end
+
+# file: a.rb
+
+	c = self
+	c.host = "localhost"
+	c.port = 8080
+	c.name do |c|
+		c.first = "Guten"
+	end
+
 
 
 Contributing
