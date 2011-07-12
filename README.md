@@ -62,6 +62,25 @@ alternative syntax
 		c.time = proc{|offset| Time.now}
 	end
 
+a sugar syntax 
+
+	# file: guten/rc.rb
+	development:
+		adapter "mysql2"
+		database "hello"
+		username "guten"
+
+	#=>
+
+	development do
+		adapter "mysql2"
+		database "hello"
+		username "guten"
+	end
+
+**WARNNING**:  must use \t to indent for this sugar syntax.
+
+
 ### initialize ###
 
 either way is fine
@@ -201,26 +220,6 @@ for a list of semantic methods, see O::Semantics
 
 a list of blocked methods is in O::BUILTIN_METHODS
 
-### another sugar syntax ###
-
-it likes yaml-style. used in file syntax only
-
-	# file: guten/rc.rb
-	a:
-		b 1
-		c:
-			d 1
-
-	#=>
-
-	a do
-		b 1
-		c do
-			d 1
-		end
-	end
-
-**WARNNING**:  must use \t to indent
 
 ### some other examples ###
 
