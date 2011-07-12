@@ -7,8 +7,6 @@ O, a configuration libraray for Ruby
 **Documentation**: [http://rubydoc.info/gems/o/frames](http://rubydoc.info/gems/o/frames) <br/>
 **Issue Tracker**: [https://github.com/GutenYe/o/issues](https://github.com/GutenYe/o/issues) <br/>
 
-for completed documentation, see [localhost.com/not_yet](http://localhost.com/not_yet)
-
 Features
 --------
 
@@ -50,14 +48,12 @@ do configuration at three levels: system, user, cmdline
 
 alternative syntax
 
-	Rc = O do
-		c = self
+	Rc = O do |c|
 		c.host = "localhost"
 		c.port = 8080
 		c.mail.stmp.address "stmp.gmail.com"
 
-		my.development do
-			c = self
+		my.development do |c|
 			c.adapter = "mysql2"
 			c.database = "hello"
 			c.username = "guten"
@@ -97,10 +93,10 @@ either way is fine
 	Rc[:age]  #=> 1
 	Rc["age"] #=> 1
 	--- 
-	O do
+	O do |c|
 		age 2
-		self.age = 2
-		self[:age] = 2
+		c.age = 2
+		c[:age] = 2
 	end
 
 ### node ###
@@ -209,20 +205,20 @@ a list of blocked methods is in O::BUILTIN_METHODS
 
 it likes yaml-style.  this way is experiment. used in file syntax only
 
+	# file: guten/rc.rb
+	a:
+		b 1
+		c:
+			d 1
+
+	#=>
+
 	a do
 		b 1
 		c do
 			d 1
 		end
 	end
-
-	#=>
-
-	# file: guten/rc.rb
-	a:
-		b 1
-		c:
-			d 1
 
 **WARNNING**:  must use \t to indent
 

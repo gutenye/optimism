@@ -96,6 +96,13 @@ describe O do
 			rc._child.should == {a: 1}
 		end
 
+		it "has block-style syntax" do
+			rc = O.new do |c|
+				c.a = 1
+			end
+			rc._child.should == {a: 1}
+		end
+
 		it "more complex one" do
 			rc = O.new do
 				self.a = 1

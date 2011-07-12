@@ -104,7 +104,15 @@ class O
 	def initialize default=nil, options={}, &blk
 		@_root = options[:_root]
 		@_child = Hash.new(default)
-		instance_eval &blk if blk
+
+		if blk
+			method = _blk2method(&blk)
+			if blk.arity == 0
+				method.call
+			else
+				method.call self
+			end
+		end
 	end
 
 	def _temp &blk
@@ -154,6 +162,22 @@ class O
 		raise Error, "not support type for + -- #{other.inspect}" unless O === other
 		O.new(_child, other._child)
 	end
+
+	# convert block to method.
+	#
+	#   you can call a block with arguments
+	#
+	# @example USAGE
+	#   instance_eval(&blk)
+	#   blk2method(&blk).call *args
+	#
+	def _blk2method &blk
+		self.class.class_eval do
+			define_method(:__blk2method, &blk)
+		end
+		method(:__blk2method)
+	end
+
 
 	#
 	# .name? 
