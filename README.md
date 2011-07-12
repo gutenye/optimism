@@ -207,21 +207,24 @@ a list of blocked methods is in O::BUILTIN_METHODS
 
 ### another sugar syntax ###
 
-this way is experiment.
+it likes yaml-style.  this way is experiment. used in file syntax only
 
-	development do
-		adapter "mysql2"
-		databse "hello"
-		username "guten"
+	a do
+		b 1
+		c do
+			d 1
+		end
 	end
 
 	#=>
 
-	development:
-		adapter "mysql2"
-		database "hello"
-		username "guten"
-		
+	# file: guten/rc.rb
+	a:
+		b 1
+		c:
+			d 1
+
+**WARNNING**:  must use \t to indent
 
 ### some other examples ###
 

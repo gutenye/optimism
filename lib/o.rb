@@ -1,8 +1,7 @@
 libdir = File.dirname(__FILE__)
 $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
 
-require "o/semantics"
-require "o/hash_method_fix"
+%w(semantics hash_method_fix parser).each{|n| require "o/#{n}"}
 
 class O
 	autoload :VERSION, "o/version"
@@ -18,7 +17,7 @@ class O
 		# @params [String] content
 		def eval content=nil, &blk
 			o = O.new nil
-			content ? o.instance_eval(content) : o.instance_eval(&blk)
+			content ? o.instance_eval(Parser.compile(content)) : o.instance_eval(&blk)
 			o._root
 		end
 

@@ -278,4 +278,5 @@ EOF
 			node1.inspect.should == right
 		end
 	end
+
 end
