@@ -38,8 +38,8 @@ do configuration at three levels: system, user, cmdline
 		mail.stmp.address "stmp.gmail.com"
 
 		my.development do  # namespace
-			adapter "mysql2"
-			database "hello"
+			adapter "postgresql"
+			database "hello_development"
 			username "guten"
 		end
 

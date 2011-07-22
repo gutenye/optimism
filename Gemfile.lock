@@ -1,0 +1,31 @@
+PATH
+  remote: .
+  specs:
+    o (2.0.0)
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    activesupport (3.0.9)
+    pa (1.0.2)
+      pa (~> 1.0.0)
+      tagen (~> 1.0.0)
+      thor (~> 0.14.0)
+    pd (1.0.2)
+    rag (1.0.6)
+      pa (~> 1.0.0)
+      tagen (~> 1.0.0)
+      thor (~> 0.14.0)
+    tagen (1.0.2)
+      activesupport
+      pd
+    thor (0.14.6)
+    watchr (0.7)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  o!
+  rag
+  watchr
