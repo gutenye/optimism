@@ -138,9 +138,9 @@ either way is fine
 			friend do
 				age 3
 				p age     #=> 3
-				p __.age  #=> 2  relative
-				p ___.age #=> 1
-				p _.age   #=> 1  root
+				p __.age  #=> 2  __ is relative up to 1 times
+				p ___.age #=> 1  ___ and so on is relative up to 2 and so on times
+				p _.age   #=> 1  _ is root
 			end
 		end
 	end
