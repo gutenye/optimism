@@ -22,14 +22,16 @@ Introduction
 
 The three levels of configuration include system, user, and cmdline:
 
-	lib/guten/rc.rb   # system level
+	APP/lib/guten/rc.rb   # system level
 	~/.gutenrc        # user level
 	$ guten --list or ENV[GEMFILE]=x guten  # cmdline level
 
 	module Guten
-		Rc = O.require("guten/rc") + O.require("~/.gutenrc")
+		Rc = O.require("guten/rc") + O.require("~/.gutenrc") # require use $:
 		Rc.list = true or Rc.gemfile = ENV[GEMFILE] # from cmdline.
 	end
+
+	a constant works very well in many places, but you are free to use any variable.
 
 ### An example ###
 
@@ -93,13 +95,20 @@ In order to initialize the configuration object either of the two ways can be us
 	Rc = O do 
 		a 1 
 	end
-	Rc = O[a:1]  # from hash   
-	Rc._merge! O_or_Hash  
+	Rc = O[a: 1]  # from a hash data
+	Rc._merge!(a: 1)
 
 file: "guten/rc.rb"
 
 	a 1
 
+initalize with a default value
+
+	Rc = O.new
+	p Rc[:hello] #=> nil
+	Rc = O.new 1
+	p Rc[:hello] #=> 1
+	p Rc.hello #=> <#O>  be careful here
 
 ### Assignment & Access ###
 

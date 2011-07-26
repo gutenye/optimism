@@ -1,8 +1,21 @@
 class O
+	# convert sugar syntax
+	#
+	#   develoment:
+	#     database 'postgresql'
+	#
+	# to a pure ruby syntax
+	#
+	#   development do
+	#     database 'postgresql'
+	#   end
+	#
 	class Parser
+		# the string data.
 		attr_reader :content
 
 		class << self
+			# a handy method for Parser.new(content).compile
 			def compile content
 				parser = Parser.new content
 				parser.compile
@@ -13,6 +26,7 @@ class O
 			@content = content
 		end
 
+		# compile sugar-syntax into ruby-syntax
 		def compile
 			script = ""
 			indent_counts = 0
@@ -45,7 +59,6 @@ class O
 		end
 		
 	private
-	
 		def scan
 			last_indent = 0
 

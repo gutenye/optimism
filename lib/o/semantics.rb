@@ -1,12 +1,14 @@
 class O
+	# some semantic names for meaningfull configuration.
 	module Semantics
-	# semantic
-	def no
-		false
-	end
+		# @return false
+		def no
+			false
+		end
 
-	def yes
-		true
-	end
+		# @return true
+		def yes
+			true
+		end
 	end
 end

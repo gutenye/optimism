@@ -1,8 +1,34 @@
 libdir = File.dirname(__FILE__)
 $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
 
-%w(semantics hash_method_fix parser).each{|n| require "o/#{n}"}
+%w(semantics
+	hash_method_fix 
+	parser).each{|n| require "o/#{n}"}
 
+# <#O> is a node, it has _child, _parent and _root attribute.
+#
+#  Rc = O do
+#    a.b 1
+#    a.c do
+#      d 2
+#    end
+#  end
+#
+#  p Rc
+#  #=> <#O
+#     :a => <#O
+#       :b => 1
+#       :c => <#O
+#         :d => 2>>>
+#
+#  Rc.a #=> <#O>
+#  Rc.a._child #=> {:b => 1, :c => <#O>}
+#  Rc.a._parent #=> is Rc
+#  Rc.a._root #=> is Rc
+#
+#  Rc._parent #=>  nil
+#  Rc._root #=> is Rc
+#
 class O
 	autoload :VERSION, "o/version"
 
@@ -14,15 +40,19 @@ class O
 	class << self
 		public *BUILTIN_METHODS 
 
+		# eval a file/string configuration.
+		#
 		# @params [String] content
+		# @return [O] configuration
 		def eval content=nil, &blk
 			o = O.new nil
 			content ? o.instance_eval(Parser.compile(content)) : o.instance_eval(&blk)
 			o._root
 		end
 
-		# convert hash, O to O
+		# convert Hash, O to O
 		# @param [O,Hash] data
+		# @return [O]
 		def [] data
 			case data
 			when O
@@ -34,10 +64,9 @@ class O
 			end
 		end
 
-		# get hash data from obj
+		# get Hash data from any object
 		#
 		# @param [O, Hash] obj
-		#
 		# @return [Hash] 
 		def get obj
 			case obj
@@ -52,14 +81,13 @@ class O
 		# use $: and support '~/.gutenrc'
 		#
 		# @example
-		#   option = O.load("~/.gutenrc")
+		#   Rc = O.require("~/.gutenrc")
 		#
-		#   option = O.load("/absolute/path/a.rb")
+		#   Rc = O.require("/absolute/path/rc.rb")
+		#
+		#   Rc = O.require("guten/rc") #=> load 'APP/lib/guten/rc.rb'
+		#   # first try 'guten/rc.rb', then 'guten/rc'
 		#   
-		#   O::Path << "/home"
-		#   option = O.load("guten")  #=> try "guten.rb"; then try "guten"
-		#   option = O.load("guten.rb")
-		#
 		# @param [String] name
 		# @return [O]
 		def require name
@@ -99,8 +127,16 @@ class O
 	include Semantics
 	include HashMethodFix
 
-	attr_accessor :_parent, :_child, :_root
+	# parent node, a <#O>
+	attr_accessor :_parent 
 
+	# child node, a hash data
+	attr_accessor :_child 
+
+	# root node, a <#O>
+	attr_accessor :_root
+
+	# @param [Object] (nil) default create a new hash with the defalut value
 	def initialize default=nil, options={}, &blk
 		@_root = options[:_root]
 		@_child = Hash.new(default)
@@ -115,6 +151,7 @@ class O
 		end
 	end
 
+	# a temporarily change
 	def _temp &blk
 		data = _child.dup
 		blk.call
@@ -133,11 +170,13 @@ class O
 		@_child = O.get(obj)
 	end
 
+	# set data
 	def []= key, value
 		key = key.respond_to?(:to_sym) ? key.to_sym : key
 		@_child[key] = value
 	end
 
+	# get data
 	def [] key
 		key = key.respond_to?(:to_sym) ? key.to_sym : key
 		@_child[key]
@@ -147,12 +186,19 @@ class O
 		_child == other._child
 	end
 
+	# duplicate
+	#
+	# @return [O] new <#O>
 	def _dup
 		o = O.new
 		o._child = _child.dup
 		o
 	end
 
+	# replace with a new data
+	#
+	# @param [Hash,O] obj
+	# @return [O] self
 	def _replace obj
 		self._child = O.get(obj)
 		self
@@ -163,39 +209,22 @@ class O
 		O.new(_child, other._child)
 	end
 
-	# convert block to method.
+	# everything goes here.
 	#
-	#   you can call a block with arguments
+	#   .name? 
+	#   .name= value 
+	#   .name value 
+	#   ._name
 	#
-	# @example USAGE
-	#   instance_eval(&blk)
-	#   blk2method(&blk).call *args
-	#
-	def _blk2method &blk
-		self.class.class_eval do
-			define_method(:__blk2method, &blk)
-		end
-		method(:__blk2method)
-	end
-
-
-	#
-	# .name? 
-	# .name= value 
-	# .name value 
-	# ._name
-	#
-	# .c 
-	# .a.b.c
+	#   .c 
+	#   .a.b.c
 	#
 	def method_missing name, *args, &blk
-		#O.p d 'missing', name, args, blk
-
 		# path: root
 		if name == :_
 			return _root
 
-		# relative path.
+		# relative path: __
 		elsif name =~ /^__+$/
 			num = name.to_s.count('_') - 1
 			node = self
@@ -218,7 +247,6 @@ class O
 		# .name?
 		elsif name =~ /(.*)\?$/
 			return !! @_child[$1.to_sym]
-
 
 		elsif Proc === @_child[name]
 			return @_child[name].call *args
@@ -252,12 +280,13 @@ class O
 		end
 	end
 
-	#
-	# <#O 
-	#   :b => 1
-	#   :c => 2
-	#   :d => <#O
-	#     :c => 2>> 
+	# pretty print
+	# 
+	#   <#O 
+	#     :b => 1
+	#     :c => 2
+	#     :d => <#O
+	#       :c => 2>> 
 	def inspect(indent="  ")
 		o={rst: ""}
 		o[:rst] << "<#O\n"
@@ -269,9 +298,27 @@ class O
 	end
 
 	alias to_s inspect
+
+private
+	# convert block to method.
+	#
+	#   you can call a block with arguments
+	#
+	# @example USAGE
+	#   instance_eval(&blk)
+	#   blk2method(&blk).call *args
+	#
+	def _blk2method &blk
+		self.class.class_eval do
+			define_method(:__blk2method, &blk)
+		end
+		method(:__blk2method)
+	end
+
 end
 
 module Kernel
+	# a handy method 
 	def O default=nil, &blk
 		O.new(default, &blk)
 	end

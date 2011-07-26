@@ -82,6 +82,19 @@ describe O do
 			@rc[:a].should == 1
 		end
 	end
+
+	context "initalize with default value" do
+		it "default value is nil" do
+			rc = O.new
+			rc[:foo].should == nil
+		end
+
+		it "init with default value 1" do
+			rc = O.new 1
+			rc[:foo].should == 1
+		end
+	end
+
 	it "return <#O> if key doesn't exist" do
 		rc = O.new
 		rc.i.dont.exists.should be_an_instance_of O
