@@ -7,7 +7,7 @@ O, a configuration gem for Ruby
 **Documentation**: [http://rubydoc.info/gems/o/frames](http://rubydoc.info/gems/o/frames) <br/>
 **Issue Tracker**: [https://github.com/GutenYe/o/issues](https://github.com/GutenYe/o/issues) <br/>
 
-then name `o` comes from option/setting, short and handy, eh-ah~
+The name `o` comes from option/setting, short and handy, eh-ah~
 
 Features
 --------
