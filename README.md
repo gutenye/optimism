@@ -24,11 +24,11 @@ do configuration at three levels: system, user, cmdline
 
 	lib/guten/rc.rb   # system level
 	~/.gutenrc        # user level
-	$ guten --list    # cmdline level
+	$ guten --list or ENV[GEMFILE]=x guten  # cmdline level
 		
 	module Guten
 		Rc = O.require("guten/rc") + O.require("~/.gutenrc")
-		Rc.list = true
+		Rc.list = true or Rc.gemfile = ENV[GEMFILE] # from cmdline.
 	end
 
 
