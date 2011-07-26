@@ -9,7 +9,7 @@ class O
 	Error 		= Class.new Exception 
 	LoadError = Class.new Error
 
-	BUILTIN_METHODS = [ :p, :pd, :raise, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open]
+	BUILTIN_METHODS = [ :p, :raise, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open]
 
 	class << self
 		public *BUILTIN_METHODS 
@@ -189,7 +189,7 @@ class O
 	# .a.b.c
 	#
 	def method_missing name, *args, &blk
-		#O.pd 'missing', name, args, blk
+		#O.p d 'missing', name, args, blk
 
 		# path: root
 		if name == :_

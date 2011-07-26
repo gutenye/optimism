@@ -51,7 +51,6 @@ class O
 
 			content.scan(/(.*?)(\n+|\Z)/).each do |line, newline|
 
-				#pd line.match(/^(\t*)(.*)/)
 				_, indents, statement = line.match(/^(\t*)(.*)/).to_a
 
 				# indent
