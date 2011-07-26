@@ -129,6 +129,7 @@ Access:
 
 ### Node ###
 
+	Rc = O.new
 	Rc.a.b.c = 1
 	p Rc.a.b.c #=> <#Fixnum 1>
 	p Rc.a.b   #=> <#O>
@@ -139,7 +140,7 @@ Access:
 	p Rc.a._empty? #=> true  # if a node is empty?
 	Rc.a.b = 1
 	p Rc.a._empty? #=> false
-	p O===Rc.a     #=> true  # if this is a node?
+	p O===Rc.a     #=> true  # if it is a node?
 	p O===Rc.a.b   #=> false
 
 ### Variable & Path ###
@@ -261,10 +262,6 @@ Contributing
 
 * Feel free to join the project and make contributions (by submitting a pull request)
 * Submit any bugs/features/ideas to github issue tracker
-
-TODO
-----------
-* Improve documentation
 
 Install
 ----------
