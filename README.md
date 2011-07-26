@@ -217,7 +217,13 @@ Note: for a list of semantic methods, see O::Semantics
 
 ### Hash compatibility ###
 
-	Rc._keys # access hash method via `_method`
+internal, datas are stored as a Hash. you can access all hash methods via `_method`
+
+	Rc = O.new
+	Rc.a = 1
+	Rc._child #=> {:a=>1}
+
+	Rc._keys #=> [:a]
 
 ### Temporarily change ###
 
@@ -236,7 +242,6 @@ Note: for a list of semantic methods, see O::Semantics
 	end
 
 Note: for a list of blocked methods, see O::BUILTIN_METHODS
-
 
 ### Additional examples ###
 
