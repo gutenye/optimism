@@ -245,6 +245,13 @@ describe O do
 
 			rc._keys.should == [:a]
 		end
+
+		it "_method? must comes before method?" do
+			rc = O.new
+			rc.i._empty?.should be_true
+			rc.i.empty?.should be_false
+		end
+
 	end
 
 	context "temporarily change" do
