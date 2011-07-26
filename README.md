@@ -127,7 +127,7 @@ either way is fine
 	p Rc.a.b.c #=> <#Fixnum 1>
 	p Rc.a.b   #=> <#O>
 	p Rc.a     #=> <#O>
-	p Rc.i.dont.exists #=> <#O> #check use #_empty?
+	p Rc.i.dont.exists #=> <#O> #check use Rc.i.dont.exists._empty?
 
 ### variable & path ###
 

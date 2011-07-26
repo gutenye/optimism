@@ -209,15 +209,16 @@ class O
 		elsif name =~ /(.*)=$/
 			return @_child[$1.to_sym] = args[0]
 
-		# .name?
-		elsif name =~ /(.*)\?$/
-			return !! @_child[$1.to_sym]
-
 		# ._name
 		elsif name =~ /^_(.*)/
 			name = $1.to_sym
 			args.map!{|arg| O===arg ? arg._child : arg} 
 			return @_child.send(name, *args, &blk)
+
+		# .name?
+		elsif name =~ /(.*)\?$/
+			return !! @_child[$1.to_sym]
+
 
 		elsif Proc === @_child[name]
 			return @_child[name].call *args
