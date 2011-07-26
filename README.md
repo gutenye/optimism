@@ -64,7 +64,7 @@ alternative syntax
 		c.time = proc{|offset| Time.now}
 	end
 
-a sugar syntax 
+a sugar syntax. _works in a file only_ 
 
 	# file: guten/rc.rb
 	development:
@@ -80,8 +80,9 @@ a sugar syntax
 		username "guten"
 	end
 
-**WARNNING**:  must use \t to indent for this sugar syntax.
+this is not pure ruby syntax, but it works.
 
+**WARNNING**:  must use \t to indent for this sugar syntax.
 
 ### initialize ###
 
