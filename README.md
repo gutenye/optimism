@@ -1,4 +1,4 @@
-O, a configuration libraray for Ruby
+O, a configuration gem for Ruby
 ====================================
 
 **Homepage**: [https://github.com/GutenYe/o](https://github.com/GutenYe/o) <br/>
@@ -7,32 +7,31 @@ O, a configuration libraray for Ruby
 **Documentation**: [http://rubydoc.info/gems/o/frames](http://rubydoc.info/gems/o/frames) <br/>
 **Issue Tracker**: [https://github.com/GutenYe/o/issues](https://github.com/GutenYe/o/issues) <br/>
 
-then name `o` comes from option/setting, short and handy, eh-ah~
+The name `o` comes from option/setting, short and handy, eh-ah~
 
 Features
 --------
 
-* support variable, computed attribute
-* DSL syntax in pure ruby
-* tree way to do configration.
-* hash compatibility
+* Variable and computed attribute support
+* Pure Ruby DSL syntax
+* Multiple configuration levels including system, user, and command-line.
+* Hash compatibility
 
 Introduction
 -------------
 
-do configuration at three levels: system, user, cmdline
+The three levels of configuration include system, user, and cmdline:
 
 	lib/guten/rc.rb   # system level
 	~/.gutenrc        # user level
 	$ guten --list or ENV[GEMFILE]=x guten  # cmdline level
-		
+
 	module Guten
 		Rc = O.require("guten/rc") + O.require("~/.gutenrc")
 		Rc.list = true or Rc.gemfile = ENV[GEMFILE] # from cmdline.
 	end
 
-
-### a completed example ###
+### An example ###
 
 	Rc = O do
 		host "localhost"
@@ -48,7 +47,7 @@ do configuration at three levels: system, user, cmdline
 		time proc{|offset| Time.now} # computed attribute
 	end
 
-alternative syntax
+### An example using alternative syntax ###
 
 	Rc = O do |c|
 		c.host = "localhost"
@@ -64,7 +63,7 @@ alternative syntax
 		c.time = proc{|offset| Time.now}
 	end
 
-a sugar syntax. _works in a file only_ 
+### An example of some sugar syntax. _works in a file only_ ###
 
 	# file: guten/rc.rb
 	development:
@@ -80,13 +79,14 @@ a sugar syntax. _works in a file only_
 		username "guten"
 	end
 
-this is not pure ruby syntax, but it works.
 
-**WARNNING**:  must use \t to indent for this sugar syntax.
 
-### initialize ###
+**NOTE**: This is not pure ruby syntax, but it works.
+In order for this to work, a tab ("\t") must be used for indention.
 
-either way is fine
+### Initialize ###
+
+In order to initialize the configuration object either of the two ways can be used.
 
 	Rc = O.new
 	Rc = O.require "guten/rc"  # from file
@@ -101,15 +101,21 @@ file: "guten/rc.rb"
 	a 1
 
 
-### assignment & access ###
+### Assignment & Access ###
 
-either way is fine
+Flexibility has been built in to allow for various ways to assign configuration 
+data values and access the same values within your application. Here are some
+examples of how this can be done:
+
+Assignment:
 
 	Rc.age 1
 	Rc.age = 1
 	Rc[:age] = 1
 	Rc["age"] = 1
-	---
+
+Access:
+
 	Rc.age    #=> 1
 	Rc.age?   #=> true
 	Rc[:age]  #=> 1
@@ -121,7 +127,7 @@ either way is fine
 		c[:age] = 2
 	end
 
-### node & Checker ###
+### Node ###
 
 	Rc.a.b.c = 1
 	p Rc.a.b.c #=> <#Fixnum 1>
@@ -136,7 +142,7 @@ either way is fine
 	p O===Rc.a     #=> true  # if this is a node?
 	p O===Rc.a.b   #=> false
 
-### variable & path ###
+### Variable & Path ###
 
 	O do
 		age 1
@@ -153,9 +159,9 @@ either way is fine
 		end
 	end
 
-### namespace ###
+### Namespace ###
 
-either way is fine
+Either way is fine:
 
 	O do
 		mail.stmp.address "stmp.gmail.com"
@@ -164,7 +170,7 @@ either way is fine
 		end
 	end
 
-another example
+Another namespace example:
 
 	O do
 		age 1 
@@ -179,9 +185,9 @@ another example
 	end
 
 
-### group ###
+### Group ###
 
-use namespace or use some seperate files like rails.
+Use namespace or use some separate files like rails.
 
 	config/
 		applications.rb
@@ -190,7 +196,7 @@ use namespace or use some seperate files like rails.
 			test.rb
 			production.rb
 
-### computed attribute ###
+### Computed attribute ###
 
 	Rc = O do
 		time proc{|n| Time.now}
@@ -200,19 +206,19 @@ use namespace or use some seperate files like rails.
 	Rc.time = 2 # assign new value
 	p Rc[:time] #=> <#Proc>
 
-### semantic ###
+### Semantic ###
 
 	O do
 		is_started no # yes ...
 	end
 
-for a list of semantic methods, see O::Semantics
+Note: for a list of semantic methods, see O::Semantics
 
-### hash compatibility ###
+### Hash compatibility ###
 
 	Rc._keys # access hash method via `_method`
 
-### temporarily change ###
+### Temporarily change ###
 
 	Rc.a = 1
 	Rc._temp do
@@ -221,17 +227,17 @@ for a list of semantic methods, see O::Semantics
 	p Rc.a #=> 1
 
 
-### access builtin method inside block ###
+### Access built-in method inside block ###
 
 	Rc = O do
 		sleep 10     # is a data. Rc.sleep #=> 10
 		O.sleep 10   # call builtin 'sleep' method
 	end
 
-a list of blocked methods is in O::BUILTIN_METHODS
+Note: for a list of blocked methods, see O::BUILTIN_METHODS
 
 
-### some other examples ###
+### Additional examples ###
 
 	O do
 		name do
@@ -250,16 +256,15 @@ a list of blocked methods is in O::BUILTIN_METHODS
 		c.first = "Guten"
 	end
 
-
-
 Contributing
 -------------
 
-* join the project.
-* report bugs/featues to issue tracker.
-* fork it and pull a request.
-* improve documentation.
-* feel free to post any ideas. 
+* Feel free to join the project and make contributions (by submitting a pull request)
+* Submit any bugs/features/ideas to github issue tracker
+
+TODO
+----------
+* Improve documentation
 
 Install
 ----------
