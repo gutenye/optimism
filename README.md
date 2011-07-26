@@ -121,13 +121,20 @@ either way is fine
 		c[:age] = 2
 	end
 
-### node ###
+### node & Checker ###
 
-	Rc.a.b.c 1
+	Rc.a.b.c = 1
 	p Rc.a.b.c #=> <#Fixnum 1>
 	p Rc.a.b   #=> <#O>
 	p Rc.a     #=> <#O>
-	p Rc.i.dont.exists #=> <#O> #check use Rc.i.dont.exists._empty?
+	p Rc.i.dont.exists #=> <#O>
+
+	Rc = O.new
+	p Rc.a._empty? #=> true  # if a node is empty?
+	Rc.a.b = 1
+	p Rc.a._empty? #=> false
+	p O===Rc.a     #=> true  # if this is a node?
+	p O===Rc.a.b   #=> false
 
 ### variable & path ###
 
