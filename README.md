@@ -102,7 +102,7 @@ file: "guten/rc.rb"
 
 	a 1
 
-initalize with a default value
+Initalize with a default value
 
 	Rc = O.new
 	p Rc[:hello] #=> nil
@@ -226,7 +226,7 @@ Note: for a list of semantic methods, see O::Semantics
 
 ### Hash compatibility ###
 
-internal, datas are stored as a Hash. you can access all hash methods via `_method`
+Internal, datas are stored as a Hash. You can access all hash methods via `_method`
 
 	Rc = O.new
 	Rc.a = 1
