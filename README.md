@@ -276,6 +276,7 @@ Contributing
 
 * Feel free to join the project and make contributions (by submitting a pull request)
 * Submit any bugs/features/ideas to github issue tracker
+* Codeing style: https://gist.github.com/1105334
 
 Install
 ----------
