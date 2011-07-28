@@ -1,10 +1,10 @@
 require "spec_helper"
 
-class O::Parser
+class Optimism::Parser
 	public :compile, :scan
 end
 
-describe O::Parser do
+describe Optimism::Parser do
 	describe "#token" do
 		it "tests" do
 			content = <<EOF
@@ -25,7 +25,7 @@ b:
 g 1
 EOF
 
-			parser = O::Parser.new content
+			parser = Optimism::Parser.new content
 			parser.scan do |token, statement|
 				#pd token, statement
 			end
@@ -48,12 +48,12 @@ b:
 		f 1
 g 1
 EOF
-		parser = O::Parser.new content
+		parser = Optimism::Parser.new content
 		parser.scan do |token, statement|
 			#pd token, statement
 		end
 
-		parser = O::Parser.new content
+		parser = Optimism::Parser.new content
 		#puts parser.compile
 		end
 
@@ -69,12 +69,12 @@ b do
 	end
 end
 EOF
-			parser = O::Parser.new content
+			parser = Optimism::Parser.new content
 			parser.scan do |token, statement|
 				#pd token, statement
 			end
 
-			parser = O::Parser.new content
+			parser = Optimism::Parser.new content
 			#puts parser.compile
 		end
 
@@ -88,12 +88,12 @@ b:
 		f 1
 	end
 EOF
-			parser = O::Parser.new content
+			parser = Optimism::Parser.new content
 			parser.scan do |token, statement|
 				#pd token, statement
 			end
 
-			parser = O::Parser.new content
+			parser = Optimism::Parser.new content
 			#puts parser.compile
 		end
 
@@ -111,7 +111,7 @@ a do
 end\n
 EOF
 
-			O::Parser.compile(content).should == right
+			Optimism::Parser.compile(content).should == right
 
 		end
 	end

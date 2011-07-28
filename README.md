@@ -1,13 +1,11 @@
-O, a configuration gem for Ruby
+Optimism, a configuration gem for Ruby
 ====================================
 
-**Homepage**: [https://github.com/GutenYe/o](https://github.com/GutenYe/o) <br/>
+**Homepage**: [https://github.com/GutenYe/optimism](https://github.com/GutenYe/optimism) <br/>
 **Author**:	Guten <br/>
 **License**: MIT-LICENSE <br/>
-**Documentation**: [http://rubydoc.info/gems/o/frames](http://rubydoc.info/gems/o/frames) <br/>
-**Issue Tracker**: [https://github.com/GutenYe/o/issues](https://github.com/GutenYe/o/issues) <br/>
-
-The name `o` comes from option/setting, short and handy, eh-ah~
+**Documentation**: [http://rubydoc.info/gems/optimism/frames](http://rubydoc.info/gems/optimism/frames) <br/>
+**Issue Tracker**: [https://github.com/GutenYe/optimism/issues](https://github.com/GutenYe/optimism/issues) <br/>
 
 Features
 --------
@@ -27,7 +25,7 @@ The three levels of configuration include system, user, and cmdline:
 	$ guten --list or ENV[GEMFILE]=x guten  # cmdline level
 
 	module Guten
-		Rc = O.require("guten/rc") + O.require("~/.gutenrc") # require use $:
+		Rc = Optimism.require("guten/rc") + Optimism.require("~/.gutenrc") # require use $:
 		Rc.list = true or Rc.gemfile = ENV[GEMFILE] # from cmdline.
 	end
 
@@ -35,7 +33,7 @@ The three levels of configuration include system, user, and cmdline:
 
 ### An example ###
 
-	Rc = O do
+	Rc = Optimism do
 		host "localhost"
 		port 8080
 		mail.stmp.address "stmp.gmail.com"
@@ -51,7 +49,7 @@ The three levels of configuration include system, user, and cmdline:
 
 ### An example using alternative syntax ###
 
-	Rc = O do |c|
+	Rc = Optimism do |c|
 		c.host = "localhost"
 		c.port = 8080
 		c.mail.stmp.address "stmp.gmail.com"
@@ -82,7 +80,6 @@ The three levels of configuration include system, user, and cmdline:
 	end
 
 
-
 **NOTE**: This is not pure ruby syntax, but it works.
 In order for this to work, a tab ("\t") must be used for indention.
 
@@ -90,12 +87,12 @@ In order for this to work, a tab ("\t") must be used for indention.
 
 In order to initialize the configuration object either of the two ways can be used.
 
-	Rc = O.new
-	Rc = O.require "guten/rc"  # from file
-	Rc = O do 
+	Rc = Optimism.new
+	Rc = Optimism.require "guten/rc"  # from file
+	Rc = Optimism do 
 		a 1 
 	end
-	Rc = O[a: 1]  # from a hash data
+	Rc = Optimism[a: 1]  # from a hash data
 	Rc._merge!(a: 1)
 
 file: "guten/rc.rb"
@@ -104,11 +101,11 @@ file: "guten/rc.rb"
 
 Initalize with a default value
 
-	Rc = O.new
+	Rc = Optimism.new
 	p Rc[:hello] #=> nil
-	Rc = O.new 1
+	Rc = Optimism.new 1
 	p Rc[:hello] #=> 1
-	p Rc.hello #=> <#O>  be careful here
+	p Rc.hello #=> <#Optimism>  be careful, it's a node.
 
 ### Assignment & Access ###
 
@@ -130,7 +127,7 @@ Access:
 	Rc[:age]  #=> 1
 	Rc["age"] #=> 1
 	--- 
-	O do |c|
+	Optimism do |c|
 		age 2
 		c.age = 2
 		c[:age] = 2
@@ -138,23 +135,23 @@ Access:
 
 ### Node ###
 
-	Rc = O.new
+	Rc = Optimism.new
 	Rc.a.b.c = 1
 	p Rc.a.b.c #=> <#Fixnum 1>
-	p Rc.a.b   #=> <#O>
-	p Rc.a     #=> <#O>
-	p Rc.i.dont.exists #=> <#O>
+	p Rc.a.b   #=> <#Optimism>
+	p Rc.a     #=> <#Optimism>
+	p Rc.i.dont.exists #=> <#Optimism>
 
-	Rc = O.new
+	Rc = Optimism.new
 	p Rc.a._empty? #=> true  # if a node is empty?
 	Rc.a.b = 1
 	p Rc.a._empty? #=> false
-	p O===Rc.a     #=> true  # if it is a node?
-	p O===Rc.a.b   #=> false
+	p Optimism===Rc.a     #=> true  # if it is a node?
+	p Optimism===Rc.a.b   #=> false
 
 ### Variable & Path ###
 
-	O do
+	Optimism do
 		age 1
 		p age  #=> 1
 		my do
@@ -173,7 +170,7 @@ Access:
 
 Either way is fine:
 
-	O do
+	Optimism do
 		mail.stmp.address "stmp.gmail.com"
 		mail.stmp do
 			address "stmp.gmail.com"
@@ -182,7 +179,7 @@ Either way is fine:
 
 Another namespace example:
 
-	O do
+	Optimism do
 		age 1 
 
 		my do
@@ -208,7 +205,7 @@ Use namespace or use some separate files like rails.
 
 ### Computed attribute ###
 
-	Rc = O do
+	Rc = Optimism do
 		time proc{|n| Time.now}
 	end
 	p Rc.time # print current time. no need Rc.time.call()
@@ -218,11 +215,11 @@ Use namespace or use some separate files like rails.
 
 ### Semantic ###
 
-	O do
+	Optimism do
 		is_started no # yes ...
 	end
 
-Note: for a list of semantic methods, see O::Semantics
+Note: for a list of semantic methods, see Optimism::Semantics
 
 ### Hash compatibility ###
 
@@ -245,16 +242,16 @@ Internal, datas are stored as a Hash. You can access all hash methods via `_meth
 
 ### Access built-in method inside block ###
 
-	Rc = O do
+	Rc = Optimism do
 		sleep 10     # is a data. Rc.sleep #=> 10
-		O.sleep 10   # call builtin 'sleep' method
+		Optimism.sleep 10   # call builtin 'sleep' method
 	end
 
-Note: for a list of blocked methods, see O::BUILTIN_METHODS
+Note: for a list of blocked methods, see Optimism::BUILTIN_METHODS
 
 ### Additional examples ###
 
-	O do
+	Optimism do
 		name do
 			first "Guten"
 			last  "Ye"

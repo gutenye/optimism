@@ -1,4 +1,4 @@
-class O
+class Optimism
   # some semantic names for meaningfull configuration.
   module Semantics
     # @return false

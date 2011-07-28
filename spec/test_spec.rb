@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe O do
+describe Optimism do
 	it 'works' do
-		o = O.new
+		o = Optimism.new
 		#pd o.i
 	end
 end

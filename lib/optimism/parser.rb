@@ -1,4 +1,4 @@
-class O
+class Optimism
   # convert sugar syntax
   #
   #   develoment:
@@ -83,7 +83,7 @@ class O
           yield :undent
         else
           counts.abs.times {
-            yield (counts>0 ? :indent : :dedent)
+            yield counts>0 ? :indent : :dedent
           }
         end
 

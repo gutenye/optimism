@@ -1,17 +1,17 @@
 $: << "lib"
-require "o/version"
+require "optimism/version"
 
 Gem::Specification.new do |s|
-	s.name = "o"
-	s.version = O::VERSION::IS
+	s.name = "optimism"
+	s.version = Optimism::VERSION::IS
 	s.summary = "a configuration library for Ruby"
 	s.description = <<-EOF
-a coonfiguration library for Ruby
+a configuration library for Ruby
 	EOF
 
 	s.author = "Guten"
 	s.email = "ywzhaifei@Gmail.com"
-	s.homepage = "http://github.com/GutenYe/o"
+	s.homepage = "http://github.com/GutenYe/optimism"
 	s.rubyforge_project = "xx"
 
 	s.files = `git ls-files`.split("\n")

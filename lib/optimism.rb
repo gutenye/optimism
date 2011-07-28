@@ -5,11 +5,11 @@ $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
   semantics
   hash_method_fix 
   parser
-).each { |n| require "o/#{n}" }
+).each { |n| require "optimism/#{n}" }
 
-# <#O> is a node, it has _child, _parent and _root attribute.
+# <#Optimism> is a node, it has _child, _parent and _root attribute.
 #
-#  Rc = O do
+#  Rc = Optimism do
 #    a.b 1
 #    a.c do
 #      d 2
@@ -17,22 +17,22 @@ $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
 #  end
 #
 #  p Rc
-#  #=> <#O
-#     :a => <#O
+#  #=> <#Optimism
+#     :a => <#Optimism
 #       :b => 1
-#       :c => <#O
+#       :c => <#Optimism
 #         :d => 2>>>
 #
-#  Rc.a #=> <#O>
-#  Rc.a._child #=> {:b => 1, :c => <#O>}
+#  Rc.a #=> <#Optimism>
+#  Rc.a._child #=> {:b => 1, :c => <#Optimism>}
 #  Rc.a._parent #=> is Rc
 #  Rc.a._root #=> is Rc
 #
 #  Rc._parent #=>  nil
 #  Rc._root #=> is Rc
 #
-class O
-  autoload :VERSION, "o/version"
+class Optimism
+  autoload :VERSION, "optimism/version"
 
   Error     = Class.new Exception 
   LoadError = Class.new Error
@@ -45,37 +45,37 @@ class O
     # eval a file/string configuration.
     #
     # @params [String] content
-    # @return [O] configuration
+    # @return [Optimism] configuration
     def eval(content=nil, &blk)
-      o = O.new nil
-      content ? o.instance_eval(Parser.compile(content)) : o.instance_eval(&blk)
+      optimism = Optimism.new nil
+      content ? optimism.instance_eval(Parser.compile(content)) : optimism.instance_eval(&blk)
 
-      o._root
+      optimism._root
     end
 
-    # convert Hash, O to O
-    # @param [O,Hash] data
-    # @return [O]
+    # convert Hash, Optimism to Optimism
+    # @param [Optimism,Hash] data
+    # @return [Optimism]
     def [](data)
       case data
-      when O
+      when Optimism
         data
       when Hash
-        o = O.new
-        o._child = data
-        o
+        optimism = Optimism.new
+        optimism._child = data
+        optimism
       end
     end
 
     # get Hash data from any object
     #
-    # @param [O, Hash] obj
+    # @param [Optimism, Hash] obj
     # @return [Hash] 
     def get(obj)
       case obj
       when Hash
         obj
-      when O
+      when Optimism
         obj._child
       end
     end
@@ -84,15 +84,15 @@ class O
     # use $: and support '~/.gutenrc'
     #
     # @example
-    #   Rc = O.require("~/.gutenrc")
+    #   Rc = Optimism.require("~/.gutenrc")
     #
-    #   Rc = O.require("/absolute/path/rc.rb")
+    #   Rc = Optimism.require("/absolute/path/rc.rb")
     #
-    #   Rc = O.require("guten/rc") #=> load 'APP/lib/guten/rc.rb'
+    #   Rc = Optimism.require("guten/rc") #=> load 'APP/lib/guten/rc.rb'
     #   # first try 'guten/rc.rb', then 'guten/rc'
     #   
     # @param [String] name
-    # @return [O]
+    # @return [Optimism]
     def require(name)
       path = nil
 
@@ -122,7 +122,7 @@ class O
 
       raise LoadError, "can't find file -- #{name}" unless path
 
-      O.eval File.read(path)
+      Optimism.eval File.read(path)
     end
   end
 
@@ -130,13 +130,13 @@ class O
   include Semantics
   include HashMethodFix
 
-  # parent node, a <#O>
+  # parent node, a <#Optimism>
   attr_accessor :_parent 
 
   # child node, a hash data
   attr_accessor :_child 
 
-  # root node, a <#O>
+  # root node, a <#Optimism>
   attr_accessor :_root
 
   # @param [Object] (nil) default create a new hash with the defalut value
@@ -172,7 +172,7 @@ class O
   end
 
   def _child=(obj)
-    @_child = O.get(obj)
+    @_child = Optimism.get(obj)
   end
 
   # set data
@@ -195,28 +195,28 @@ class O
 
   # duplicate
   #
-  # @return [O] new <#O>
+  # @return [Optimism] new <#Optimism>
   def _dup
-    o = O.new
-    o._child = _child.dup
+    optimism = Optimism.new
+    optimism._child = _child.dup
 
-    o
+    optimism
   end
 
   # replace with a new data
   #
-  # @param [Hash,O] obj
-  # @return [O] self
+  # @param [Hash,Optimism] obj
+  # @return [Optimism] self
   def _replace(obj)
-    self._child = O.get(obj)
+    self._child = Optimism.get(obj)
 
     self
   end
 
   def +(other)
-    raise Error, "not support type for + -- #{other.inspect}" unless O === other
+    raise Error, "not support type for + -- #{other.inspect}" unless Optimism === other
 
-    O.new _child, other._child
+    Optimism.new _child, other._child
   end
 
   # everything goes here.
@@ -251,7 +251,7 @@ class O
     # ._name
     elsif name =~ /^_(.*)/
       name = $1.to_sym
-      args.map!{|arg| O===arg ? arg._child : arg} 
+      args.map!{|arg| Optimism===arg ? arg._child : arg} 
       return @_child.send(name, *args, &blk)
 
     # .name?
@@ -259,10 +259,10 @@ class O
       return !! @_child[$1.to_sym]
 
     elsif Proc === @_child[name]
-      return @_child[name].call *args
+      return @_child[name].call(*args)
 
     # a.c  # return data if has :c
-    # a.c  # create new <#O> if no :c 
+    # a.c  # create new <#Optimism> if no :c 
     #
     elsif args.empty?
 
@@ -271,16 +271,16 @@ class O
       #   c 2
       # end
       if @_child.has_key?(name)
-        o = @_child[name]
-        o.instance_eval(&blk) if blk
-        return o
+        optimism = @_child[name]
+        optimism.instance_eval(&blk) if blk
+        return optimism
 
       else
-        next_o = O.new(nil, {_root: _root})
-        next_o._parent = self
-        self._child[name] = next_o
-        next_o.instance_eval(&blk) if blk
-        return next_o
+        next_optimism = Optimism.new(nil, {_root: _root})
+        next_optimism._parent = self
+        self._child[name] = next_optimism
+        next_optimism.instance_eval(&blk) if blk
+        return next_optimism
       end
 
     # .name value
@@ -292,21 +292,21 @@ class O
 
   # pretty print
   # 
-  #   <#O 
+  #   <#Optimism 
   #     :b => 1
   #     :c => 2
-  #     :d => <#O
+  #     :d => <#Optimism
   #       :c => 2>> 
   def inspect(indent="  ")
-    o={rst: ""}
-    o[:rst] << "<#O\n"
+    rst = ""
+    rst << "<#Optimism\n"
     _child.each { |k,v|
-      o[:rst] << "#{indent}#{k.inspect} => "
-      o[:rst] << (O === v ? "#{v.inspect(indent+"  ")}\n" : "#{v.inspect}\n")
+      rst << "#{indent}#{k.inspect} => "
+      rst << (Optimism === v ? "#{v.inspect(indent+"  ")}\n" : "#{v.inspect}\n")
     }
-    o[:rst].rstrip! << ">"
+    rst.rstrip! << ">"
 
-    o[:rst]
+    rst
   end
 
   alias to_s inspect
@@ -332,7 +332,7 @@ end
 
 module Kernel
   # a handy method 
-  def O(default=nil, &blk)
-    O.new default, &blk
+  def Optimism(default=nil, &blk)
+    Optimism.new default, &blk
   end
 end
