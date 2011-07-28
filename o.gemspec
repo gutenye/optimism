@@ -6,12 +6,12 @@ Gem::Specification.new do |s|
 	s.version = O::VERSION::IS
 	s.summary = "a configuration library for Ruby"
 	s.description = <<-EOF
-a coonfiguration library for Ruby
+from version 2.0.4, it renamed to optimism, new home page is github.com/GutenYe/optimism
 	EOF
 
 	s.author = "Guten"
 	s.email = "ywzhaifei@Gmail.com"
-	s.homepage = "http://github.com/GutenYe/o"
+	s.homepage = "http://github.com/GutenYe/optimism"
 	s.rubyforge_project = "xx"
 
 	s.files = `git ls-files`.split("\n")
