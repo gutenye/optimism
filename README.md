@@ -11,7 +11,7 @@ Features
 --------
 
 * Variable and computed attribute support
-* Pure Ruby DSL syntax
+* DSL syntax
 * Multiple configuration levels including system, user, and command-line.
 * Hash compatibility
 
@@ -20,15 +20,16 @@ Introduction
 
 The three levels of configuration include system, user, and realtime:
 
-/etc/foo or APP/lib/foo/rc.rb # system level
-~/.foorc        # user level
-`$ foo --list` or `$ ENV[GEMFILE]=x foo`  # realtime level
+* /etc/foo or APP/lib/foo/rc.rb # system
+* ~/.foorc        # user
+* `$ foo --list` or `$ ENV[GEMFILE]=x foo`  # realtime
 
-	module Guten
-		Rc = Optimism.require(%w[foo/rc ~/.foorc])
+for example
+
+	module Foo
+		Rc = Optimism.require %w(foo/rc ~/.foorc)
 		Rc.list = true or Rc.gemfile = ENV[GEMFILE] # from cmdline.
 	end
-
 
 ### An example ###
 
@@ -283,10 +284,10 @@ Note: for a list of blocked methods, see Optimism::BUILTIN_METHODS
 		end
 	end
 
-  Optimism do
-    _.name = "foo"
-    my.name = "bar"  # _ is optional here.
-  end
+	Optimism do
+		_.name = "foo"
+		my.name = "bar"  # _ is optional here.
+	end
 
 \# file: a.rb
 
@@ -294,7 +295,11 @@ Note: for a list of blocked methods, see Optimism::BUILTIN_METHODS
 	_.port = 8080
 	_.name do |c|
 		c.first = "Guten"
+		c.last = "Tag"
 	end
+
+	my.host = "localhost"
+	my.port = 8080
 
 Contributing
 ------------
