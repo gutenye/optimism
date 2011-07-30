@@ -1,3 +1,5 @@
+require 'hike'
+
 libdir = File.dirname(__FILE__)
 $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
 
@@ -5,6 +7,7 @@ $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
   semantics
   hash_method_fix 
   parser
+  require
 ).each { |n| require "optimism/#{n}" }
 
 # <#Optimism> is a node, it has _child, _parent and _root attribute.
@@ -34,13 +37,15 @@ $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
 class Optimism
   autoload :VERSION, "optimism/version"
 
-  Error     = Class.new Exception 
-  LoadError = Class.new Error
+  Error         = Class.new Exception 
+  MissingFile   = Class.new Error
 
   BUILTIN_METHODS = [ :p, :raise, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open]
 
   class << self
     public *BUILTIN_METHODS 
+
+    include Require
 
     # eval a file/string configuration.
     #
@@ -53,7 +58,30 @@ class Optimism
       optimism._root
     end
 
-    # convert Hash, Optimism to Optimism
+    # deep convert Hash to optimism
+    # 
+    # @example
+    #   hash2optimism({a: {b: 1})
+    #   #=> Optimism[a: Optimism[b: 1]]
+    #
+    # @param [Hash,Optimism] hash
+    # @return [Optimism]
+    def convert(hash)
+      return hash if Optimism === hash
+
+      node = Optimism.new
+      hash.each { |k,v|
+        if Hash === v
+          node[k] = convert(v)
+        else
+          node[k] = v
+        end
+      }
+      node
+    end
+
+    # convert Hash to Optimism
+    #
     # @param [Optimism,Hash] data
     # @return [Optimism]
     def [](data)
@@ -80,55 +108,13 @@ class Optimism
       end
     end
 
-    # load a configuration file,
-    # use $: and support '~/.gutenrc'
-    #
-    # @example
-    #   Rc = Optimism.require("~/.gutenrc")
-    #
-    #   Rc = Optimism.require("/absolute/path/rc.rb")
-    #
-    #   Rc = Optimism.require("guten/rc") #=> load 'APP/lib/guten/rc.rb'
-    #   # first try 'guten/rc.rb', then 'guten/rc'
-    #   
-    # @param [String] name
-    # @return [Optimism]
-    def require(name)
-      path = nil
 
-      # ~/.gutenrc
-      if name =~ /^~/
-        file = File.expand_path(name)
-        path = file if File.exists?(file)
-
-      # /absolute/path/to/rc
-      elsif File.absolute_path(name) == name
-        path = name if File.exists?(name)
-
-      # relative/rc
-      else
-        catch :break do
-          $:.each { |p|
-            ['.rb', ''].each { |ext|
-              file = File.join(p, name+ext)
-              if File.exists? file
-                path = file
-                throw :break
-              end
-            }
-          }
-        end
-      end
-
-      raise LoadError, "can't find file -- #{name}" unless path
-
-      Optimism.eval File.read(path)
-    end
   end
 
   undef_method *BUILTIN_METHODS
   include Semantics
   include HashMethodFix
+  include RequireInstanceMethod
 
   # parent node, a <#Optimism>
   attr_accessor :_parent 
@@ -176,8 +162,24 @@ class Optimism
   end
 
   # set data
+  #
+  # @example
+  #  
+  #  o = Optimism.new
+  #
+  #  a = Optimism do
+  #    _.b = 1
+  #  end
+  #
+  #  o[:a] = a OR o.a << a  #=> o.a.b is 1
+  #
   def []=(key, value)
     key = key.respond_to?(:to_sym) ? key.to_sym : key
+
+    if Optimism === value
+      value._parent = self
+      value._root = self._root
+    end
 
     @_child[key] = value
   end

@@ -18,14 +18,14 @@ Features
 Introduction
 -------------
 
-The three levels of configuration include system, user, and cmdline:
+The three levels of configuration include system, user, and realtime:
 
-	APP/lib/guten/rc.rb   # system level
-	~/.gutenrc        # user level
-	$ guten --list or ENV[GEMFILE]=x guten  # cmdline level
+	/etc/foo or APP/lib/foo/rc.rb # system level
+	~/.foorc        # user level
+	$ foo --list or $ ENV[GEMFILE]=x foo  # realtime level
 
 	module Guten
-		Rc = Optimism.require("guten/rc") + Optimism.require("~/.gutenrc") # require use $:
+		Rc = Optimism.require(%w[foo/rc ~/.foorc])
 		Rc.list = true or Rc.gemfile = ENV[GEMFILE] # from cmdline.
 	end
 
@@ -41,7 +41,7 @@ The three levels of configuration include system, user, and cmdline:
 		my.development do  # namespace
 			adapter "postgresql"
 			database "hello_development"
-			username "guten"
+			username "foo"
 		end
 
 		time proc{|offset| Time.now} # computed attribute
@@ -57,7 +57,7 @@ The three levels of configuration include system, user, and cmdline:
 		my.development do |c|
 			c.adapter = "mysql2"
 			c.database = "hello"
-			c.username = "guten"
+			c.username = "foo"
 		end
 
 		c.time = proc{|offset| Time.now}
@@ -65,18 +65,18 @@ The three levels of configuration include system, user, and cmdline:
 
 ### An example of some sugar syntax. _works in a file only_ ###
 
-	# file: guten/rc.rb
+	# file: foo/rc.rb
 	development:
 		adapter "mysql2"
 		database "hello"
-		username "guten"
+		username "foo"
 
 	#=>
 
 	development do
 		adapter "mysql2"
 		database "hello"
-		username "guten"
+		username "foo"
 	end
 
 
@@ -88,14 +88,17 @@ In order for this to work, a tab ("\t") must be used for indention.
 In order to initialize the configuration object either of the two ways can be used.
 
 	Rc = Optimism.new
-	Rc = Optimism.require "guten/rc"  # from file
+	Rc = Optimism.require "foo/rc"  # from file
 	Rc = Optimism do 
 		a 1 
 	end
 	Rc = Optimism[a: 1]  # from a hash data
-	Rc._merge!(a: 1)
 
-file: "guten/rc.rb"
+	Rc = Optimism.new
+	Rc.production << {a: 1} #=> Rc.production.a is 1
+	Rc.production << Optimism.require_string("my.age = 1") #=> Rc.production.my.age is 1
+
+file: "foo/rc.rb"
 
 	a 1
 
@@ -231,6 +234,28 @@ Internal, datas are stored as a Hash. You can access all hash methods via `_meth
 
 	Rc._keys #=> [:a]
 
+### Require ###
+
+	# load configuration from  file. support $:
+	Optimism.require %w(
+		foo/rc
+		~/.foorc
+	end
+
+	# load configuration from string
+	Optimism.require_string <<-EOF
+		my.age = 1
+	EOF
+	
+
+	# load configuration from environment variable
+	ENV[OPTIMISM_A_B] = 1
+	Rc = Optimism.require_env(/OPTIMISM_(.*)/) #=> Rc.a_b is 1
+	Rc = Optimism.require_env(/OPTIMISM_(.*)/, split: '_') #=> Rc.a.b is 1
+
+	# load configuration from user input
+	Rc = Optimism.require_input("what's your name?", "my.name") #=> Rc.my.name is 'what you typed in terminal'
+
 ### Temporarily change ###
 
 	Rc.a = 1
@@ -259,21 +284,27 @@ Note: for a list of blocked methods, see Optimism::BUILTIN_METHODS
 		end
 	end
 
+  Optimism do
+    _.name = "foo"
+    my.name = "bar"  # _ is optional here.
+  end
+
 \# file: a.rb
 
-	c = self
-	c.host = "localhost"
-	c.port = 8080
-	c.name do |c|
+	_.host = "localhost"
+	_.port = 8080
+	_.name do |c|
 		c.first = "Guten"
 	end
 
 Contributing
--------------
+------------
 
 * Feel free to join the project and make contributions (by submitting a pull request)
 * Submit any bugs/features/ideas to github issue tracker
 * Coding Style Guide: https://gist.github.com/1105334
+
+[a list of Contributors](https://github.com/GutenYe/optimism/wiki/Contributors)
 
 Install
 ----------

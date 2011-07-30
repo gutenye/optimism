@@ -1,6 +1,38 @@
 require "spec_helper"
+$:.unshift $spec_dir
+
 
 describe Optimism do
+  it "test" do
+  end
+
+  describe ".convert" do
+    it "works with simple hash data" do
+      Optimism.convert({a: 1}).should == Optimism[a: 1]
+    end
+
+    it "works with compilex hash data" do
+      Optimism.convert({a: 1, b: {c: 1}}).should == Optimism[a: 1, b: Optimism[c: 1]]
+    end
+
+    it "works with simple optimism data" do
+      o = Optimism[a: 1]
+      Optimism.convert(o).should == o
+    end
+
+    it "works with complex hash and optimism data" do
+      data = {
+        a: 1,
+        b: Optimism[c: 2],
+        c: {
+          e: Optimism[d: 3] 
+        }
+      }
+      right = Optimism[a: 1, b: Optimism[c: 2], c: Optimism[e: Optimism[d: 3]]]
+      Optimism.convert(data).should == right
+    end
+  end
+
 	describe ".get" do
 		it "gets from Hash" do
 			Optimism.get(a: 1).should == {a: 1}
@@ -16,27 +48,7 @@ describe Optimism do
 			Optimism[a:1].should be_an_instance_of Optimism
 		end
 	end
-	describe ".require" do
-		it "raise LoadError when file doesn't exist" do
-			lambda{Optimism.require "file/doesnt/exists"}.should raise_error(Optimism::LoadError)
-		end
 
-		it "loads an absolute path" do
-			Optimism.require(File.join($spec_data_dir, 'rc.rb'))._child == {a: 1}
-		end
-
-		it "loads a relative path" do
-			$: << $spec_data_dir
-			Optimism.require('rc')._child == {a: 1}
-			Optimism.require('rc.rb')._child == {a: 1}
-		end
-
-		it "loads a home path" do
-			ENV["HOME"] = $spec_data_dir
-			Optimism.require('rc.rb')._child == {a: 1}
-		end
-
-	end
 
 	context "access" do
 		before :all do
@@ -305,5 +317,6 @@ EOF
 			node1.inspect.should == right
 		end
 	end
+
 
 end
