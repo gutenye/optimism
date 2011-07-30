@@ -95,7 +95,7 @@ In order to initialize the configuration object either of the two ways can be us
 	Rc = Optimism[a: 1]  # from a hash data
 
 	Rc = Optimism.new
-	Rc.production << {a: 1} #=> Rc.production.a is 1
+	Rc.production << {a: {b: 1}} #=> Rc.production.a.b is 1 # deep convert hash into <#Optimism>
 	Rc.production << Optimism.require_string("my.age = 1") #=> Rc.production.my.age is 1
 
 file: "foo/rc.rb"
