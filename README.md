@@ -236,25 +236,29 @@ Internal, datas are stored as a Hash. You can access all hash methods via `_meth
 
 ### Require ###
 
-	# load configuration from  file. support $:
+load configuration from  file. support $:
+
 	Optimism.require %w(
 		foo/rc
 		~/.foorc
 	end
 
-	# load configuration from string
+load configuration from string
+
 	Optimism.require_string <<-EOF
 		my.age = 1
 	EOF
 	
 
-	# load configuration from environment variable
+load configuration from environment variable
+
 	ENV[OPTIMISM_A_B] = 1
 	Rc = Optimism.require_env(/OPTIMISM_(.*)/) #=> Rc.a_b is 1
 	Rc = Optimism.require_env(/OPTIMISM_(.*)/, split: '_') #=> Rc.a.b is 1
 
-	# load configuration from user input
-	Rc = Optimism.require_input("what's your name?", "my.name") #=> Rc.my.name is 'what you typed in terminal'
+load configuration from user input
+
+	Rc = Optimism.require_input("what's your name?", "my.name") #=> Rc.my.name is whatever you typed in terminal
 
 ### Temporarily change ###
 
