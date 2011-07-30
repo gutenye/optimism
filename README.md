@@ -20,16 +20,15 @@ Introduction
 
 The three levels of configuration include system, user, and realtime:
 
-	/etc/foo or APP/lib/foo/rc.rb # system level
-	~/.foorc        # user level
-	$ foo --list or $ ENV[GEMFILE]=x foo  # realtime level
+/etc/foo or APP/lib/foo/rc.rb # system level
+~/.foorc        # user level
+`$ foo --list` or `$ ENV[GEMFILE]=x foo`  # realtime level
 
 	module Guten
 		Rc = Optimism.require(%w[foo/rc ~/.foorc])
 		Rc.list = true or Rc.gemfile = ENV[GEMFILE] # from cmdline.
 	end
 
-	a constant works very well in many places, but you are free to use any variable.
 
 ### An example ###
 
@@ -95,18 +94,14 @@ In order to initialize the configuration object either of the two ways can be us
 	Rc = Optimism[a: 1]  # from a hash data
 
 	Rc = Optimism.new
-	Rc.production << {a: {b: 1}} #=> Rc.production.a.b is 1 # deep convert hash into <#Optimism>
-	Rc.production << Optimism.require_string("my.age = 1") #=> Rc.production.my.age is 1
-
-file: "foo/rc.rb"
-
-	a 1
+	Rc.production << {a: {b: 1}} #=> Rc.production.a.b is 1 
+	Rc.production << Optimism.require_string("port 8080") #=> Rc.production.port is 1
 
 Initalize with a default value
 
 	Rc = Optimism.new
 	p Rc[:hello] #=> nil
-	Rc = Optimism.new 1
+	Rc = Optimism.new(1)
 	p Rc[:hello] #=> 1
 	p Rc.hello #=> <#Optimism>  be careful, it's a node.
 
