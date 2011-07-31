@@ -313,7 +313,7 @@ Contributing
 Install
 ----------
 
-	gem install o
+	gem install optimism
 
 Resources
 ---------
