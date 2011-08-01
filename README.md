@@ -308,7 +308,14 @@ Contributing
 * Submit any bugs/features/ideas to github issue tracker
 * Coding Style Guide: https://gist.github.com/1105334
 
-[a list of Contributors](https://github.com/GutenYe/optimism/wiki/Contributors)
+Contributors
+------------
+
+This project wouldn’t exist without all of our awesome users and contributors. 
+
+* [View our growing list of contributors](https://github.com/GutenYe/optimism/contributors)
+
+Thank you so much!
 
 Install
 ----------
