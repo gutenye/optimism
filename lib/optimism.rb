@@ -53,7 +53,13 @@ class Optimism
     # @return [Optimism] configuration
     def eval(content=nil, &blk)
       optimism = Optimism.new nil
-      content ? optimism.instance_eval(Parser.compile(content)) : optimism.instance_eval(&blk)
+
+      if content
+        optimism._parse_string content
+      elsif blk
+        optimism.instance_eval(&blk)
+      end
+
       optimism.__send__ :_collect_instance_variables
 
       optimism._root
@@ -312,6 +318,24 @@ class Optimism
     rst
   end
 
+  def _parse_string(content)
+    bind = binding
+
+    vars = Parser.collect_local_variables(content)
+    content = Parser.compile(content)
+    eval content, bind
+
+    vars.each { |name|
+      value = bind.eval(name)
+      @_child[name.to_sym] = value
+    }
+  end
+
+  def _eval(content)
+    content=_rstrip_content(content)
+    @_child = Optimism.eval(content)._child
+  end
+
   alias to_s inspect
 
 private
@@ -331,6 +355,13 @@ private
     method(:__blk2method)
   end
 
+  # strip left wide-space each line
+  def _rstrip_content(content)
+    content.split("\n").each.with_object("") { |line, memo|
+      memo << line.rstrip + "\n"
+    }
+  end
+
   def _collect_instance_variables
     instance_variables.each { |name|
       # skip @_child ..
@@ -340,9 +371,6 @@ private
       @_child[name[1..-1].to_sym]=value
     } 
   end
-
-
-
 end
 
 module Kernel

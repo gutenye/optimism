@@ -8,6 +8,8 @@ Optimism, a configuration gem for Ruby
 | Documentation: | http://rubydoc.info/gems/optimism/frames
 | Issue Tracker: | https://github.com/GutenYe/optimism/issues
 
+a proposal to [simply the syntax](https://github.com/GutenYe/optimism/issues/9) in 3.0.
+
 Features
 --------
 

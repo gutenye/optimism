@@ -143,6 +143,19 @@ describe Optimism do
 		end
 
 	end
+  context "string syntax" do
+    it "works" do
+      rc = Optimism.eval <<-EOF
+a = 1
+b.c = 2
+
+development:
+  e = 3
+      EOF
+      rc._child.should == {b: Optimism[c: 2], development: Optimism[e: 3], a: 1}
+    end
+  end
+
 	context "namespace" do
 
 		it "supports basic namespace" do
@@ -323,4 +336,6 @@ EOF
 			node1.inspect.should == right
 		end
 	end
+
+
 end
