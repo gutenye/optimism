@@ -60,6 +60,7 @@ class Optimism
       script
     end
     
+
   private
     def scan
       last_indent = 0

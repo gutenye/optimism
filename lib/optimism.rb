@@ -40,7 +40,7 @@ class Optimism
   Error         = Class.new Exception 
   MissingFile   = Class.new Error
 
-  BUILTIN_METHODS = [ :p, :raise, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open]
+  BUILTIN_METHODS = [:p, :raise, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open, :send]
 
   class << self
     public *BUILTIN_METHODS 
@@ -54,6 +54,7 @@ class Optimism
     def eval(content=nil, &blk)
       optimism = Optimism.new nil
       content ? optimism.instance_eval(Parser.compile(content)) : optimism.instance_eval(&blk)
+      optimism.__send__ :_collect_instance_variables
 
       optimism._root
     end
@@ -107,8 +108,6 @@ class Optimism
         obj._child
       end
     end
-
-
   end
 
   undef_method *BUILTIN_METHODS
@@ -138,6 +137,8 @@ class Optimism
         method.call self
       end
     end
+
+    _collect_instance_variables
   end
 
   # a temporarily change
@@ -329,6 +330,18 @@ private
 
     method(:__blk2method)
   end
+
+  def _collect_instance_variables
+    instance_variables.each { |name|
+      # skip @_child ..
+      next if name =~ /^@_/
+
+      value = instance_variable_get(name)
+      @_child[name[1..-1].to_sym]=value
+    } 
+  end
+
+
 
 end
 

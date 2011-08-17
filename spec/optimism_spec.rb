@@ -49,6 +49,12 @@ describe Optimism do
 		end
 	end
 
+  it "get instance_variable" do
+    rc = Optimism {
+      @a = 1
+    }
+    rc._child.should == {a: 1}
+  end
 
 	context "access" do
 		before :all do
@@ -317,6 +323,4 @@ EOF
 			node1.inspect.should == right
 		end
 	end
-
-
 end
