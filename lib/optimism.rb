@@ -126,25 +126,20 @@ class Optimism
 
   # child node, a hash data
   attr_accessor :_child 
+  alias _data _child
+  alias _data= _child=
 
   # root node, a <#Optimism>
   attr_accessor :_root
 
   # @param [Object] (nil) default create a new hash with the defalut value
   def initialize(default=nil, options={}, &blk)
-    @_root = options[:_root]
+    @_root = options[:_root] || self # first time is self.
+    @_parent = options[:_parent]
     @_child = Hash.new(default)
 
-    if blk
-      method = _blk2method(&blk)
-      if blk.arity == 0
-        method.call
-      else
-        method.call self
-      end
-    end
+    self._eval(&blk)
 
-    _collect_instance_variables
   end
 
   # a temporarily change
@@ -166,6 +161,15 @@ class Optimism
 
   def _child=(obj)
     @_child = Optimism.get(obj)
+  end
+
+  def _eval(content=nil, &blk)
+    if blk
+      method = _blk2method(&blk)
+      blk.arity == 0 ?  method.call : method.call(self)
+      _collect_instance_variables
+      _fix_lambda_values
+    end
   end
 
   # set data
@@ -199,7 +203,12 @@ class Optimism
   end
 
   def ==(other)
-    _child == other._child
+    case other 
+    when Optimism
+      _child == other._child
+    else
+      false
+    end
   end
 
   # duplicate
@@ -285,10 +294,9 @@ class Optimism
         return optimism
 
       else
-        next_optimism = Optimism.new(nil, {_root: _root})
-        next_optimism._parent = self
+        next_optimism = Optimism.new(nil, {_root: _root, _parent: self})
         self._child[name] = next_optimism
-        next_optimism.instance_eval(&blk) if blk
+        next_optimism._eval(&blk)
         return next_optimism
       end
 
@@ -371,6 +379,15 @@ private
       @_child[name[1..-1].to_sym]=value
     } 
   end
+
+  def _fix_lambda_values
+    @_child.each { |k,v|
+      if Proc==v and v.lambda? 
+        @_child[k] = v.call
+      end
+    }
+  end
+
 end
 
 module Kernel

@@ -1,4 +1,17 @@
 class Optimism
+  module Transform
+  class Base
+    # input any thing
+    def initilaize(content)
+      raise "implemented this"
+    end
+
+    # => any thing
+    def evaluate
+      raise "implemented this"
+    end
+  end
+
   # convert sugar syntax
   #
   #   develoment:
@@ -10,67 +23,19 @@ class Optimism
   #     database 'postgresql'
   #   end
   #
-  class Parser
-
+  class StringBlock2RubyBlock < Base
     LOCAL_VARIABLE_PAT=/(.*?)([a-zA-Z_.][a-zA-Z0-9_]*)\s*=[^~=]/
     INDENT="  "
 
     # the string data.
     attr_reader :content
 
-    class << self
-      # a handy method for Parser.new(content).compile
-      def compile(content)
-        parser = Parser.new(content)
-
-        parser.compile
-      end
-
-      # @return [Array] local_variable_names
-      def collect_local_variables(content)
-        content = remove_block_string(content)
-        content.scan(LOCAL_VARIABLE_PAT).each.with_object([]) { |match, memo|
-          name = match[1]
-          next if name=~/^[A-Z.]/ # constant and method
-          memo << name
-        }
-      end
-
-      # @example
-      #   c = 1
-      #
-      #   a:
-      #    b = 2
-      #   c:
-      #    d = 2
-      #
-      # #=>
-      #   c = 1
-      #
-      # it removes 'a:' and 'c:' block
-      def remove_block_string(content)
-        block_start = false
-
-        content.split("\n").each.with_object("") { |line, memo|
-          if line=~/:\s*$/
-            block_start = true
-          elsif line=~/^[^\s]/
-            block_start = false
-          end
-
-          if block_start == false
-            memo << line + "\n"
-          end
-        }
-      end
-    end
-
-    def initialize content
+    def initialize(content)
       @content = content
     end
 
     # compile sugar-syntax into ruby-syntax
-    def compile
+    def evalute
       script = ""
       indent_counts = 0
       block_start = false
@@ -147,4 +112,69 @@ class Optimism
       }
     end
   end
+
+  #
+  #   foo = _.name
+  # =>
+  #   foo = lambda { _.name }
+  # 
+  # all posibility
+  #
+  #   foo = true && _foo || _.bar
+  #
+  class Path2lambda < Base
+    def initilize(content)
+      @content = content
+    end
+
+    def evaluate
+      @content.gsub( 
+    end
+  end
+
+  class CollectLocalVariables < Base
+    # @return [Array] local_variable_names
+    def initialize(content)
+      @content = content
+    end
+
+    def evaluate
+      remove_block_string
+      @content.scan(LOCAL_VARIABLE_PAT).each.with_object([]) { |match, memo|
+        name = match[1]
+        next if name=~/^[A-Z.]/ # constant and method
+        memo << name
+      }
+    end
+
+    # @example
+    #   c = 1
+    #
+    #   a:
+    #    b = 2
+    #   c:
+    #    d = 2
+    #
+    # #=>
+    #   c = 1
+    #
+    # it removes 'a:' and 'c:' block
+    def remove_block_string
+      block_start = false
+
+      @content.split("\n").each.with_object("") { |line, memo|
+        if line=~/:\s*$/
+          block_start = true
+        elsif line=~/^[^\s]/
+          block_start = false
+        end
+
+        if block_start == false
+          memo << line + "\n"
+        end
+      }
+    end
+  end
+  end
 end
+

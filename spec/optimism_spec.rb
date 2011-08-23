@@ -141,23 +141,34 @@ describe Optimism do
 			end
 			rc._child.should == {a: 1, b: 2}
 		end
-
 	end
-  context "string syntax" do
+  context "ruby-syntax" do
+    it "works" do
+      $itest=true
+      rc = Optimism do
+        @a = 1
+        b.c do
+          @d = 2
+        end
+      end
+      $itest=false
+      rc.should == Optimism[b: Optimism[c: Optimism[d: 2]], a: 1]
+    end
+
+  end
+
+  context "string-syntax" do
     it "works" do
       rc = Optimism.eval <<-EOF
 a = 1
-b.c = 2
-
-development:
-  e = 3
+b.c:
+  d = 2
       EOF
-      rc._child.should == {b: Optimism[c: 2], development: Optimism[e: 3], a: 1}
+      rc.should == Optimism[a: 1, b: Optimism[c: Optimism[d: 2]]]
     end
   end
 
 	context "namespace" do
-
 		it "supports basic namespace" do
 			rc = Optimism.new do
 				a.b.c 1
@@ -238,6 +249,29 @@ development:
 				end
 			end
 		end
+
+    it "root is right in ruby-syntax" do
+      rc = Optimism do
+        @a = 1
+        @b = proc { _ }
+        #_.should == Optimism[a: 1]
+      end
+
+      pd rc.b
+      rc.b.a.should == 1
+
+
+    end
+
+    it "root is right in String" do
+      rc = Optimism.require_string <<-EOF
+a = 1
+
+xx
+
+_.should == Optimism[a: 1]
+      EOF
+    end
 	end
 
 	context "computed attribute" do

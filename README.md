@@ -84,7 +84,6 @@ for example
 
 
 **NOTE**: This is not pure ruby syntax, but it works.
-In order for this to work, a tab ("\t") must be used for indention.
 
 ### Initialize ###
 
