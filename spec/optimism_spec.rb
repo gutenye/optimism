@@ -1,26 +1,68 @@
 require "spec_helper"
 $:.unshift $spec_dir
 
+=begin
+
+quick create a <#Optimism>
+  * Optimism.convert({a: {b: 2}})
+  * Optimism[a: Optimism[b: 1]] # each node has no _parent and _root.
+
+equal
+  o1 == o2 # check Class, and _child. not check _parent or _root
+=end
+
+class Optimism
+  public :_fix_lambda_values, :_walk
+end
+
 
 describe Optimism do
-  it "test" do
-  end
+  # first
+  describe "#==" do
+    it "" do
+      a = Optimism.new
+      a._child = {a: 1}
 
+      b = Optimism.new
+      b._child = {a: 1}
+
+      a.should == b 
+    end
+  end
+	describe ".[]" do
+		it "converts Hash to Optimism" do
+      o = Optimism[a: Optimism[b: 1]]
+
+      a = Optimism.new
+      a._child = {b: 1}
+      right = Optimism.new
+      right._child = {a: a}
+
+      o.should == right
+		end
+
+		it "converts Optimism to Optimism" do
+      node = Optimism[a: 1]
+
+      Optimism[node].should == node
+		end
+	end
   describe ".convert" do
-    it "works with simple hash data" do
+    it "simple hash data" do
       Optimism.convert({a: 1}).should == Optimism[a: 1]
     end
 
-    it "works with compilex hash data" do
-      Optimism.convert({a: 1, b: {c: 1}}).should == Optimism[a: 1, b: Optimism[c: 1]]
+    it "complex hash data" do
+      #Optimism.convert({a: 1, b: {c: 1}}).should == Optimism[a: 1, b: Optimism[c: 1]]
+      o = Optimism.convert({a: 1, b: {c: 1}})
     end
 
-    it "works with simple optimism data" do
+    it "simple optimism data " do
       o = Optimism[a: 1]
       Optimism.convert(o).should == o
     end
 
-    it "works with complex hash and optimism data" do
+    it "complex optimism data" do
       data = {
         a: 1,
         b: Optimism[c: 2],
@@ -32,33 +74,87 @@ describe Optimism do
       Optimism.convert(data).should == right
     end
   end
+	describe "#inspect" do
+		it "works" do
+      o = Optimism.convert({a: 1, "a" => 2, c: {d: {e: 3}}})
+			expect = <<-EOF.rstrip
+<#Optimism:_
+  :a => 1
+  "a" => 2
+  :c => <#Optimism:c
+    :d => <#Optimism:d
+      :e => 3>>>
+EOF
+
+			o.inspect.should == expect
+		end
+	end
+
+  describe "#_root" do
+    it "works" do
+      o = Optimism.convert({a: {b: {c: 1}}})
+      o.a.b._root.should == o
+    end
+  end
+
 
 	describe ".get" do
-		it "gets from Hash" do
-			Optimism.get(a: 1).should == {a: 1}
+		it "gets data from Hash" do
+      data = {a: 1}
+			Optimism.get(data).should == {a: 1}
 		end
-		it "gets from Optimism" do
+		it "gets data from Optimism" do
 			o = Optimism.new
-			o._child = {a:1}
+			o._child = {a: 1}
 			Optimism.get(o).should == {a: 1}
 		end
 	end
-	describe ".[]" do
-		it "converts Hash to Optimism" do
-			Optimism[a:1].should be_an_instance_of Optimism
-		end
-	end
 
-  it "get instance_variable" do
-    rc = Optimism {
-      @a = 1
-    }
-    rc._child.should == {a: 1}
+  describe "#_fix_lambda_values" do
+    it "" do
+      rc = Optimism do |c|
+        c.a = lambda { 1 }
+        my do |c|
+          c.a = lambda { 2 }
+        end
+      end
+      rc.should == Optimism[a: 1, my: Optimism[a: 2]]
+    end
+  end
+
+  context "ruby-syntax" do
+    it "works" do
+      rc = Optimism do |c|
+        c.a = 1
+        b.c do |c|
+          c.d = _.a
+        end
+      end
+      rc.should == Optimism[b: Optimism[c: Optimism[d: 1]], a: 1]
+    end
+  end
+
+  context "string-syntax" do
+    it "with simple example"  do
+      rc = Optimism <<-EOF
+a = 1
+      EOF
+      rc.should == Optimism[a: 1]
+    end
+
+    it "with complex example" do
+      rc = Optimism <<-EOF
+a = 1
+b.c:
+  d = _.a
+      EOF
+      rc.should == Optimism[b: Optimism[c: Optimism[d: 1]], a: 1]
+    end
   end
 
 	context "access" do
 		before :all do
-			@rc = Optimism.new
+			@rc = Optimism[a: 1]
 			@rc._child = {a: 1} 
 		end
 
@@ -74,15 +170,14 @@ describe Optimism do
 			@rc[:a].should == 1
 		end
 
+    it "return <#Optimism> if key doesn't exist" do
+      @rc.i.dont.exists.should be_an_instance_of Optimism
+    end
 	end
+
 	context "assignment" do
 		before :each do
 			@rc = Optimism.new
-		end
-
-		it "#name value" do
-			@rc.a 1
-			@rc[:a].should == 1
 		end
 
 		it "#name= value" do
@@ -91,155 +186,141 @@ describe Optimism do
 		end
 
 		it "#[:key]= value" do
-			@rc[:a] = 1
-			@rc[:a].should == 1
+			@rc[:a] = 2
+			@rc.a.should == 2
 		end
 
 		it '#["key"]= value' do
-			@rc["a"] = 1
-			@rc[:a].should == 1
+      @rc[:a] = 4
+			@rc["a"] = 3
+			@rc["a"].should == 3
+      @rc.a.should == 4
 		end
 	end
-
-	context "initalize with default value" do
-		it "default value is nil" do
-			rc = Optimism.new
-			rc[:foo].should == nil
-		end
-
-		it "init with default value 1" do
-			rc = Optimism.new 1
-			rc[:foo].should == 1
-		end
-	end
-
-	it "return <#Optimism> if key doesn't exist" do
-		rc = Optimism.new
-		rc.i.dont.exists.should be_an_instance_of Optimism
-	end
-
-	context "basic syntax" do
-		it "works" do
-			rc = Optimism.new do 
-				a 1
-			end
-
-			rc._child.should == {a: 1}
-		end
-
-		it "has block-style syntax" do
-			rc = Optimism.new do |c|
-				c.a = 1
-			end
-			rc._child.should == {a: 1}
-		end
-
-		it "more complex one" do
-			rc = Optimism.new do
-				self.a = 1
-				self[:b] = 2
-			end
-			rc._child.should == {a: 1, b: 2}
-		end
-	end
-  context "ruby-syntax" do
-    it "works" do
-      $itest=true
-      rc = Optimism do
-        @a = 1
-        b.c do
-          @d = 2
-        end
-      end
-      $itest=false
-      rc.should == Optimism[b: Optimism[c: Optimism[d: 2]], a: 1]
-    end
-
-  end
-
-  context "string-syntax" do
-    it "works" do
-      rc = Optimism.eval <<-EOF
-a = 1
-b.c:
-  d = 2
-      EOF
-      rc.should == Optimism[a: 1, b: Optimism[c: Optimism[d: 2]]]
-    end
-  end
 
 	context "namespace" do
-		it "supports basic namespace" do
-			rc = Optimism.new do
-				a.b.c 1
+		it "supports basic namespace with ruby-syntax" do
+			rc = Optimism do |c|
+				c.a.b.c = 1
 			end
-			rc._child.should == {a: Optimism[b: Optimism[c:1]]}
+			rc.should == Optimism[a: Optimism[b: Optimism[c:1]]]
 		end
 
-		it "support block namespace" do
-			rc = Optimism.new do
-				b.c do
-					d 1
-				end
+    it "supports basic namespace with string-syntax" do
+      rc = Optimism <<-EOF
+a.b.c = 1
+      EOF
+      rc.should == Optimism[a: Optimism[b: Optimism[c: 1]]]
+    end
+
+		it "supports basic2 namespace with ruby-syntax" do
+			rc = Optimism do |c|
+				a.b do |c|
+          c.c = 1
+        end
 			end
-			rc._child.should == {b: Optimism[c: Optimism[d:1]]}
+			rc.should == Optimism[a: Optimism[b: Optimism[c:1]]]
 		end
 
-		it "supports redefine in basic namspace" do
-			rc = Optimism.new do
-				a.b.c 1
-				a.b.c 2
-			end
-			rc._child.should == {a: Optimism[b: Optimism[c:2]]}
-		end
+    it "supports basic2 namespace with string-syntax" do
+      rc = Optimism <<-EOF
+a.b:
+  c = 1
+      EOF
+      rc.should == Optimism[a: Optimism[b: Optimism[c: 1]]]
+    end
 
-		it "supports redefine in lock namespace" do
-			rc = Optimism.new do
-				a.b.c 3
-				a.b do 
-					c 4
-				end
-			end
-			rc._child.should == {a: Optimism[b: Optimism[c:4]]}
-		end
+			it "supports complex namespace with ruby-syntax" do
+				rc = Optimism do |c|
+					c.age = 1
 
-			it "complex namespace" do
-				rc = Optimism.new do
-					age 1
+					my do |c|
+						c.age = 2
 
-					my do
-						age 2
-
-						friend do
-							age 3
+						friend do |c|
+							c.age = 3
 						end
 					end
 				end
 
 				rc.should == Optimism[age: 1, my: Optimism[age: 2, friend: Optimism[age: 3]]]
 			end
+
+			it "supports complex namespace with string-syntax" do
+				rc = Optimism <<-EOF
+age = 1
+
+my:
+  age = 2
+
+  friend:
+    age = 3
+        EOF
+
+        rc.should == Optimism[age: 1, my: Optimism[age: 2, friend: Optimism[age: 3]]]
+      end
 	end
 
 	context "variable & path" do
-		it "support basic varaible" do
-			rc = Optimism.new do
-				age 1
-				myage age+1
+		it "supports basic varaible with ruby-syntax" do
+			rc = Optimism do |c|
+				c.age = 1
+        age.should == 1
 			end
-
-			rc.myage.should == 2
 		end
 
-		it "support path" do
-			rc = Optimism.new do
-				age 1
-				_.age.should == 1
+		it "supports basic varaible with string-syntax" do
+			rc = Optimism <<-EOF
+				age = 1
+        age.should == 1
+      EOF
+		end
 
-				my do
-					age 2
+		it "support root path with ruby-syntax" do
+      rc = Optimism do |c|
+        c.age = 1
+        c.myage = _.age
+      end
+      rc.myage.should == 1
+    end
 
-					friend do
-						age 3
+		it "support root path with string-syntax" do
+      rc = Optimism <<-EOF
+        age = 1
+        myage = _.age
+      EOF
+      rc.myage.should == 1
+    end
+
+
+		it "support relative path with ruby-syntax" do
+      rc = Optimism do |c|
+        c.age = 1
+        my do |c|
+          c.age = __.age
+        end
+      end
+      rc.my.age.should == 1
+    end
+
+		it "supports relative path with string-syntax" do
+      rc = Optimism <<-EOF
+        age = 1
+        my:
+          age = __.age
+      EOF
+      rc.my.age.should == 1
+    end
+
+    it "with complex example in ruby-synatx" do
+			rc = Optimism do |c|
+				c.age = 1
+
+				my do |c|
+					c.age = 2
+
+					friend do |c|
+						c.age = 3
 
 						age.should == 3
 						__.age.should == 2
@@ -250,126 +331,131 @@ b.c:
 			end
 		end
 
-    it "root is right in ruby-syntax" do
-      rc = Optimism do
-        @a = 1
-        @b = proc { _ }
-        #_.should == Optimism[a: 1]
-      end
+    it "with complex example in string-syntax" do
+      rc = Optimism <<-EOF
+        age = 1
 
-      pd rc.b
-      rc.b.a.should == 1
+        my:
+          age = 2
 
-
-    end
-
-    it "root is right in String" do
-      rc = Optimism.require_string <<-EOF
-a = 1
-
-xx
-
-_.should == Optimism[a: 1]
+          friend:
+            age = 3
+            cur_age = age
+            root_age = _.age
+            rel1_age = __.age
+            rel2_age = ___.age
       EOF
+      rc.my.friend.cur_age.should == 3
+      rc.my.friend.root_age.should == 1
+      rc.my.friend.rel1_age.should == 2
+      rc.my.friend.rel2_age.should == 1
     end
-	end
+
+  end
 
 	context "computed attribute" do
-		it "works" do
-			base = 1
-			rc = Optimism.new do
-				count proc{base+=1}
+		it "works with ruby-syntax" do
+			rc = Optimism do |c|
+				c.count = proc{|n| n}
+        c.count(1).should == 1
 			end
-			rc.count.should == 2
-			rc.count.should == 3
 		end
 
-		it "support argument" do
-			rc = Optimism.new do
-				count proc{|n|n+1}
-			end
-			rc.count(1).should == 2
-		end
+    it "works with string-syntax" do
+      rc = Optimism <<-EOF
+        count = proc{|n| n}
+      EOF
+      rc.count(1).should == 1
+    end
 
-		it "#[]" do
-			rc = Optimism.new do
-				count proc{1}
+		it "not call with #[]" do
+			rc = Optimism.new do |c|
+				c.count = proc{ 1 }
 			end
 			rc[:count].should be_an_instance_of Proc
 		end
-
-		it "#name=" do
-			rc = Optimism.new do
-				count proc{1}
-			end
-			rc.name = 1
-			rc.name.should == 1
-		end
 	end
 
-	it "is semantics" do
-		rc = Optimism.new do
-			is_started no
-		end
-
-		rc.is_started?.should be_false
-	end
+  context "semantic" do
+    it "works" do
+      rc = Optimism.new do |c|
+        c.is_started = yes
+      end
+      rc.is_started?.should be_true
+    end
+  end
 
 	context "hash compatibility" do
 		it "works" do
-			rc = Optimism.new do
-				a 1
-			end
-
+			rc = Optimism[a: 1]
 			rc._keys.should == [:a]
 		end
 
-		it "_method? must comes before method?" do
+		it "#_method? must comes before #method?" do
 			rc = Optimism.new
 			rc.i._empty?.should be_true
 			rc.i.empty?.should be_false
 		end
-
 	end
 
-	context "temporarily change" do
-		it "works" do
-			rc = Optimism.new do
-				a 1
-			end
+  describe "#_repalce" do
+    it "works" do
+      a = Optimism.convert({foo: {bar: 1}})
+      b = Optimism.new
+      b._replace a.foo
+      b.should == Optimism[bar: 1]
+      b._root.should == a
+    end
+  end
 
-			rc._temp do
-				rc.a 2
-				rc.a.should == 2
-			end
-			rc.a.should == 1
-		end
-	end
+  describe "#_walk" do
+    it "down along the path" do
+      o = Optimism.convert({a: {b: {c: 1}}})
+      node = o._walk('a.b')
+      node.should == Optimism[c: 1]
+    end
 
-	describe "#inspect" do
-		it "works" do
-			node1 = Optimism.new
-			node2 = Optimism.new
-			node3 = Optimism.new
-			node3._child = {a: 1, b: 2} 
-			node2._child = {a: node3, b: 3}
-			node1._child = { a: 1, b: 2, "a" => 112, c: node2}
+    it "up along the path" do
+      o = Optimism.convert({a: {b: {c: 1}}})
+      node = o._walk('a.b')
+      node2 = node._walk('-_.a')
+      node2.should == o
+    end
 
-			right = <<-EOF.rstrip
-<#Optimism
-  :a => 1
-  :b => 2
-  "a" => 112
-  :c => <#Optimism
-    :a => <#Optimism
-      :a => 1
-      :b => 2>
-    :b => 3>>
-EOF
+    it "down along the path with :build" do
+      o = Optimism.new
+      lambda {node = o._walk('a.b')}.should raise_error(Optimism::PathError)
+      node = o._walk('a.b', :build => true)
+      o.should == Optimism[a: Optimism[b: Optimism.new]]
+    end
 
-			node1.inspect.should == right
-		end
-	end
+    it "up along the path with :build" do
+      o = Optimism.new
+      lambda {node = o._walk('-a.b')}.should raise_error(Optimism::PathError)
+      node = o._walk('-a.b', :build => true)
+      node.should == Optimism[a: Optimism[b: Optimism.new]]
+    end
+  end
 
+  describe "#_walk!" do
+    it "down along the path" do
+      o = Optimism.new
+      o._walk!('a.b', :build => true)
+      o._root.should == Optimism[a: Optimism[b: Optimism.new]]
+    end
 
+    it "up along the path" do
+      o = Optimism.new
+      o._walk!('-a.b', :build => true)
+      o.should == Optimism[a: Optimism[b: Optimism.new]]
+    end
+  end
+
+  describe "#_set2" do
+    it "works" do
+      o = Optimism.new
+      o._set2 'a.b', 1, :build => true
+      o.should == Optimism[a: Optimism[b: 1]]
+    end
+  end
 end

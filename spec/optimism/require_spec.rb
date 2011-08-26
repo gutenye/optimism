@@ -1,21 +1,10 @@
 require "spec_helper"
 
 module Optimism::Require
-  public :find_file, :new_node
+  public :find_file
 end
 
 describe Optimism::Require do
-  describe ".new_node" do
-    it "works" do
-      o = Optimism.new_node("a.b")
-      o._root.should == Optimism[a: Optimism[b: Optimism.new]]
-    end
-
-    it "call with a value" do
-      o = Optimism.new_node("a.b", 1)
-      o._root.should == Optimism[a: Optimism[b: 1]]
-    end
-  end
 
   describe ".find_file" do
     before(:all) {
@@ -39,8 +28,8 @@ describe Optimism::Require do
   end
 
   describe ".require_file" do
-    it "works on :parent" do
-      o = Optimism.require("data/rc", :parent => 'a.b')
+    it "works with :namespace" do
+      o = Optimism.require("data/rc", :namespace => 'a.b')
       o.should == Optimism[a: Optimism[b: Optimism[a: 1]]]
     end
 
@@ -65,8 +54,6 @@ describe Optimism::Require do
     it "raise MissingFile with :raise_missing_file" do
       lambda { Optimism.require("data/file_not_exists", :raise_missing_file => true) }.should raise_error(Optimism::MissingFile)
     end
-
-
   end
 
   describe ".require_env" do
@@ -114,15 +101,6 @@ describe Optimism::Require do
       o.should == Optimism[a: "1", b: Optimism[c: "2"]]
     end
 
-  end
-
-  describe ".require_string" do
-    it "works" do
-      o = Optimism.require_string <<-EOF
-        _.a = 1
-      EOF
-      o.should == Optimism[a: 1]
-    end
   end
 
   describe ".require_input" do

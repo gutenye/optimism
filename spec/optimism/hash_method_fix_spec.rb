@@ -57,9 +57,9 @@ describe Optimism do
 
   describe "#_get" do
     before(:all) {
-      @o = Optimism do
-        _.a = 1
-        _.b.c = 2
+      @o = Optimism do |c|
+        c.a = 1
+        c.b.c = 2
       end
     }
 

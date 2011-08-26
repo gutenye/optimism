@@ -21,17 +21,17 @@ Features
 Introduction
 -------------
 
-The three levels of configuration include system, user, and realtime:
+The three levels of configuration include system, user, and cmdline:
 
-* /etc/foo or APP/lib/foo/rc.rb # system
-* ~/.foorc        # user
-* `$ foo --list` or `$ ENV[GEMFILE]=x foo`  # realtime
+* /etc/foo or APP/lib/foo/rc.rb
+* ~/.foorc
+* `$ foo --list` or `$ ENV[GEMFILE]=x foo`
 
 for example
 
 	module Foo
 		Rc = Optimism.require %w(foo/rc ~/.foorc)
-		Rc.list = true or Rc.gemfile = ENV[GEMFILE] # from cmdline.
+		Rc.gemfile = ENV[GEMFILE]
 	end
 
 ### An example ###
@@ -257,15 +257,6 @@ load configuration from environment variable
 load configuration from user input
 
 	Rc = Optimism.require_input("what's your name?", "my.name") #=> Rc.my.name is whatever you typed in terminal
-
-### Temporarily change ###
-
-	Rc.a = 1
-	Rc._temp do
-		Rc.a = 2
-	end
-	p Rc.a #=> 1
-
 
 ### Access built-in method inside block ###
 

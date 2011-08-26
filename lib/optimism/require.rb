@@ -14,8 +14,8 @@ class Optimism
     #     ~/.foorc
     #   ) 
     #
-    #   # with option :parent. add a namespace 
-    #   Rc = Optimism.require_string <<-EOF, :parent => 'a.b'
+    #   # with option :namespace. add a namespace 
+    #   Rc = Optimism <<-EOF, :namespace => 'a.b'
     #     c.d = 1
     #     e.f = 2
     #   EOF
@@ -23,7 +23,7 @@ class Optimism
     #
     #   # add to an existing configuration object.
     #   Rc = Optimism.new
-    #   Rc.a.b << Optimism.require_string("my.age = 1")  #=> Rc.a.b.my.age is 1
+    #   Rc.a.b << Optimism("my.age = 1")  #=> Rc.a.b.my.age is 1
     #
     #   # call with block
     #   ENV["AGE"] = "1"
@@ -45,7 +45,7 @@ class Optimism
     #   
     # @param [Array,String] name_s
     # @param [Hash] opts
-    # @option opts [String] :parent wrap into a namespace.
+    # @option opts [String] :namespace wrap into a namespace.
     # @option opts [Boolean] :mixin (:replace) :replace :ignore
     # @option opts [Boolean] :ignore_syntax_error not raise SyntaxError 
     # @option opts [Boolean] :raise_missing_file raise MissingFile
@@ -66,7 +66,7 @@ class Optimism
         end
 
         begin
-          new = Optimism.eval(File.read(path))
+          new = Optimism(File.read(path))
         rescue error
         end
 
@@ -79,7 +79,7 @@ class Optimism
         end
       }
 
-      o = wrap_into_namespace(opts[:parent], o) if opts[:parent]
+      o._walk!('-'+opts[:namespace], :build => true) if opts[:namespace]
 
       o
     end
@@ -106,7 +106,8 @@ class Optimism
     # @overload require_env(env_s, opts={}, &blk)
     #   @param [String, Array, Regexp] env_s
     #   @param [Hash] opts
-    #   @option opts [String] :parent
+    #   @option opts [String] :namespace
+    #   @option opts [String] :default # see #initiliaze
     #   @option opts [String, Regexp] :split
     #   @option opts [Boolean] :case_sensive (false)
     #   @return [Optimism] def require_env(*args, &blk)
@@ -131,41 +132,15 @@ class Optimism
       end
       opts[:split] ||= /\Z/
 
-      o = Optimism.new
-      envs.each { |key, env|
-        key = opts[:case_sensive] ? key : key.downcase
-
-        names = key.split(opts[:split])
-        names[0...-1].each { |name|
-          o[name] = Optimism.new
-          o = o[name]
-        }
+      o = Optimism.new(:default => opts[:defualt])
+      envs.each { |path, env|
+        path = opts[:case_sensive] ? path : path.downcase
+        path = path.split(opts[:split]).join('.')
         value = blk ? blk.call(ENV[env]) : ENV[env]
-        o[names[-1]] = value
+        o._set2(path, value, :build => true)
       }
-      o = o._root
-      o = wrap_into_namespace(opts[:parent], o) if opts[:parent]
 
-      o
-    end
-
-    # load configuration from string.
-    # @see require_file
-    #
-    # @example
-    #   
-    #   require_string <<EOF, :parent => 'production'
-    #     a.b = 1
-    #     c.d = 2
-    #   EOF
-    #
-    # @param [String] string
-    # @param [Hash] opts
-    # @option opts [String] :parent
-    # @return [Optimism]
-    def require_string(string, opts={})
-      o = Optimism.eval(string)
-      o = wrap_into_namespace(opts[:parent], o) if opts[:parent]
+      o._walk!('-'+opts[:namespace], :build => true) if opts[:namespace]
 
       o
     end
@@ -181,20 +156,20 @@ class Optimism
     # @param [String] msg print message to stdin.
     # @param [String] key
     # @param [Hash] opts
-    # @option opts [Object] :parent
+    # @option opts [Object] :namespace
     # @option opts [Object] :default use this default if user doesn't input anything.
     # @return [Optimism]
-    def require_input(msg, key, opts={}, &blk)
+    def require_input(msg, path, opts={}, &blk)
       default = opts[:default] ? "(#{opts[:default]})"  : ""
-      print msg+"#{default} "
+      opts[:build] = opts.has_key?(:build) ? opts[:build] : true
+      print msg+default
       value = gets.strip
       value = value.empty? ? opts[:default] : value
       value = blk ? blk.call(value) : value
+      o = Optimism.new
+      o._set2 path, value, opts
 
-      o = new_node(key, value)._root
-      o = wrap_into_namespace(opts[:parent], o) if opts[:parent]
-
-      o
+      o._root
     end
 
   private
@@ -220,46 +195,13 @@ class Optimism
 
       path
     end
-
-    # @example
-    # 
-    #   o = Optimism[c: 1]
-    #   new = wrap_into_namespace('a.b', o)
-    #   # => new.a.b.c is 1
-    #
-    def wrap_into_namespace(parent, node)
-      namespace = new_node(parent)
-      namespace << node
-      namespace._root
-    end
-
-    # create a new node by string node.
-    # return last node, not root node, not last value
-    #
-    # @exampe
-    #
-    #  new_node('a.b')  #=> Rc.a.b
-    #  new_node('a.b', 1) #=> Rc.a.b is 1
-    #
-    def new_node(parent, value=Optimism.new)
-      node = Optimism.new
-      nodes = parent.split(".")
-
-      nodes[0...-1].each { |name|
-        node[name] = Optimism.new
-        node = node[name]
-      }
-
-      node[nodes[-1]] = value
-
-      Optimism === value ? value : node
-    end
   end
 
   module RequireInstanceMethod
 
     # a shortcut for Require#require_input
     # @see Require#require_input
+    # @see Optimism#_walk
     #
     # @example
     #
@@ -268,9 +210,12 @@ class Optimism
     #  end
     #  o._require_input("how old are you?", "my.age") # use a default value with 1
     #
+    # @param [Hash] opts
+    # @option opts [Boolean] :build 
     def _require_input(msg, key, opts={}, &blk)
-      default = _get(key)
-      self << Optimism.require_input(msg, key, default: default, &blk)
+      opts[:default] ||= _get(key)
+      opts[:build] ||= false
+      self << Optimism.require_input(msg, key, opts, &blk)
       self
     end
   end

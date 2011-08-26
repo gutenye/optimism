@@ -39,52 +39,28 @@ class Optimism
 
   Error         = Class.new Exception 
   MissingFile   = Class.new Error
+  PathError     = Class.new Error
 
-  BUILTIN_METHODS = [:p, :raise, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open, :send]
+  BUILTIN_METHODS = [:p, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open, :send] # not :raise
 
   class << self
     public *BUILTIN_METHODS 
 
     include Require
 
-    # eval a file/string configuration.
+    # get Hash data from any Hash or Optimism
     #
-    # @params [String] content
-    # @return [Optimism] configuration
-    def eval(content=nil, &blk)
-      optimism = Optimism.new nil
-
-      if content
-        optimism._parse_string content
-      elsif blk
-        optimism.instance_eval(&blk)
+    # @param [Optimism, Hash] obj
+    # @return [Hash] 
+    def get(obj)
+      case obj
+      when Hash
+        obj
+      when Optimism
+        obj._child
+      else
+        raise ArgumentError, "wrong argument -- #{obj.inspect}"
       end
-
-      optimism.__send__ :_collect_instance_variables
-
-      optimism._root
-    end
-
-    # deep convert Hash to optimism
-    # 
-    # @example
-    #   hash2optimism({a: {b: 1})
-    #   #=> Optimism[a: Optimism[b: 1]]
-    #
-    # @param [Hash,Optimism] hash
-    # @return [Optimism]
-    def convert(hash)
-      return hash if Optimism === hash
-
-      node = Optimism.new
-      hash.each { |k,v|
-        if Hash === v
-          node[k] = convert(v)
-        else
-          node[k] = v
-        end
-      }
-      node
     end
 
     # convert Hash to Optimism
@@ -96,22 +72,34 @@ class Optimism
       when Optimism
         data
       when Hash
-        optimism = Optimism.new
-        optimism._child = data
-        optimism
+        o = Optimism.new(:default => data.default)
+        o._child = data
+        o
+      else
+        raise ArgumentError, "wrong argument -- #{data.inspect}"
       end
     end
 
-    # get Hash data from any object
+    # deep convert Hash to optimism
+    # 
+    # @example
+    #   convert({a: {b: 1})
+    #   #=> Optimism[a: Optimism[b: 1]]
     #
-    # @param [Optimism, Hash] obj
-    # @return [Hash] 
-    def get(obj)
-      case obj
-      when Hash
-        obj
+    # @param [Hash,Optimism] hash
+    # @return [Optimism]
+    def convert(hash, options={})
+      case hash
       when Optimism
-        obj._child
+        hash
+      when Hash
+        node = Optimism.new(:default => hash.default)
+        hash.each { |k,v|
+          node[k] = Hash===v ? convert(v, :name => k) : v
+        }
+        node
+      else
+        raise ArgumentError, "wrong argument -- #{hash.inspect}"
       end
     end
   end
@@ -121,87 +109,147 @@ class Optimism
   include HashMethodFix
   include RequireInstanceMethod
 
+  # the node name
+  # @param [Symbol] name
+  attr_accessor :_name
+
   # parent node, a <#Optimism>
   attr_accessor :_parent 
+
+  # root node, a <#Optimism>
+  attr_reader :_root
+  def _root
+    parent = self
+    while parent._parent
+      parent = parent._parent
+    end
+
+    parent
+  end
 
   # child node, a hash data
   attr_accessor :_child 
   alias _data _child
   alias _data= _child=
 
-  # root node, a <#Optimism>
-  attr_accessor :_root
-
-  # @param [Object] (nil) default create a new hash with the defalut value
-  def initialize(default=nil, options={}, &blk)
-    @_root = options[:_root] || self # first time is self.
-    @_parent = options[:_parent]
-    @_child = Hash.new(default)
-
-    self._eval(&blk)
-
-  end
-
-  # a temporarily change
-  def _temp(&blk)
-    data = _child.dup
-    blk.call
-    self._child = data
-
-    self
-  end
-
-  def _parent
-    @_parent || nil
-  end
-
-  def _root
-    @_root || self
-  end
-
-  def _child=(obj)
-    @_child = Optimism.get(obj)
-  end
-
-  def _eval(content=nil, &blk)
-    if blk
-      method = _blk2method(&blk)
-      blk.arity == 0 ?  method.call : method.call(self)
-      _collect_instance_variables
-      _fix_lambda_values
+  # initialize
+  # 
+  # @example
+  #
+  #  # with :default option
+  #  rc = Optimism.new(:default => 1)
+  #  rc[:i_donot_exists] #=> 1
+  #
+  #  # with :namespace option
+  #  rc = Optimism.new("foo=1", :namespace => "a.b")
+  #  rc.foo #=> 1
+  #  rc._root.a.b.foo #=> 1 
+  #
+    # @overload initialize(content=nil, options={}, &blk)
+    # @overload initialize(options={}, &blk)
+    #
+  # @param [Hash] options
+  # @option options [Object] :default default value for Hash
+  # @option options [String] :name
+  # @option options [String] :namespace
+  #
+  #
+  def initialize(*args, &blk)
+    raise ArgumentError, "wong argument -- #{args.inspect}" if args.size > 2
+    case v=args.pop
+    when Hash
+      @options = v
+      content = args[0]
+    else 
+      @options = {}
+      content = v
     end
+
+    @_name = @options[:name] || :_ # root name
+    @_root = self # first time is self.
+    @_parent = nil
+    @_child = Hash.new(@options[:default])
+
+    _walk("-#{@options[:namespace]}", :build => true) if @options[:namespace]
+
+    _eval(content, &blk) if content or blk
+
+    _root
   end
 
   # set data
   #
-  # @example
-  #  
-  #  o = Optimism.new
-  #
-  #  a = Optimism do
-  #    _.b = 1
-  #  end
-  #
-  #  o[:a] = a OR o.a << a  #=> o.a.b is 1
-  #
   def []=(key, value)
-    key = key.respond_to?(:to_sym) ? key.to_sym : key
-
+    # link node if value is <#Optimism>
     if Optimism === value
-      value._parent = self
-      value._root = self._root
+      value._parent = self 
+      value._name = key.to_sym
     end
 
     @_child[key] = value
   end
 
-  # get data
-  def [](key)
-    key = key.respond_to?(:to_sym) ? key.to_sym : key
+  # _set2 like _set, but support a path.
+  # @see _walk
+  #
+  # @exampe
+  #
+  #  o = Optimism.new
+  #  o._set2('a.b', 1) #=> 1, the value of a.b
+  #
+  # @param [Hash] options
+  # @option options [String] :namespace => path
+  # @option options [Boolean] :build
+  # @return [Object] value
+  def _set2(path, value, options={})
+    paths = path.split('.')
+    if paths.size == 1
+      path = ""
+      key = paths[0].to_sym
+    else
+      path = paths[0...-1].join('.')
+      key = paths[-1].to_sym
+    end
 
+    if path =~ /^-/
+      tmp_node = _walk(path, :build => options[:build])
+      tmp_node._walk(options[:namespace], :build => true)
+      node = self
+    else
+      node = _walk(options[:namespace], :build => true)
+      node = node._walk(path, :build => options[:build])
+    end
+    node[key] = value
+
+    value
+  end
+
+  # walk along the path.
+  #
+  # @param [String] path 'a.b' '-a.b'
+  # @param [Hash] options
+  # @option options [Boolean] (false) :build build the path if path doesn't exists.
+  # @return [Optimism] the result node.
+  def _walk(path, options={})
+    return self unless path
+    ret = path =~ /^-/ ? _walk_up(path[1..-1], options) : _walk_down(path, options)
+    ret
+  end
+
+  # walk along the path. IN PLACE
+  # @see _walk
+  #
+  # @return [Optimism] changed-self
+  def _walk!(path, options={})
+    path =~ /^-/ ? _walk_up!(path[1..-1], options) : _walk_down!(path, options)
+  end
+
+  def [](key)
     @_child[key]
   end
 
+  # equal if same _child. not check _parent or _root.
+  #
   def ==(other)
     case other 
     when Optimism
@@ -215,26 +263,27 @@ class Optimism
   #
   # @return [Optimism] new <#Optimism>
   def _dup
-    optimism = Optimism.new
-    optimism._child = _child.dup
+    o = Optimism.new(@options)
+    o._name = self._name
+    o._child = _child.dup
+    o._child.each {|k,v| v._parent = o if Optimism===v}
 
-    optimism
+    o
   end
 
-  # replace with a new data
+  # replace with a new <#Optimism>
   #
-  # @param [Hash,Optimism] obj
+  # @param [Optimism] obj
   # @return [Optimism] self
-  def _replace(obj)
-    self._child = Optimism.get(obj)
+  def _replace(other)
+    new_node = _dup
+    self._parent[self._name] = new_node if self._parent # link
+
+    self._parent = other._parent
+    self._name = other._name
+    self._child = other._child
 
     self
-  end
-
-  def +(other)
-    raise Error, "not support type for + -- #{other.inspect}" unless Optimism === other
-
-    Optimism.new _child, other._child
   end
 
   # everything goes here.
@@ -270,40 +319,40 @@ class Optimism
     elsif name =~ /^_(.*)/
       name = $1.to_sym
       args.map!{|arg| Optimism===arg ? arg._child : arg} 
-      return @_child.send(name, *args, &blk)
+      return @_child.__send__(name, *args, &blk)
 
     # .name?
     elsif name =~ /(.*)\?$/
       return !! @_child[$1.to_sym]
 
-    elsif Proc === @_child[name]
-      return @_child[name].call(*args)
+    ##
+    ## a.c  # return data if has :c
+    ## a.c  # create new <#Optimism> if no :c 
+    ##
 
-    # a.c  # return data if has :c
-    # a.c  # create new <#Optimism> if no :c 
+    # p Rc.a.b.c #=> 1
+    # p Rc.a.b.c('bar') 
     #
-    elsif args.empty?
+    elsif @_child.has_key?(name)
+      value = @_child[name]
+      return Proc===value ? value.call(*args) : value
 
-      # a.b.c 1
-      # a.b do
-      #   c 2
-      # end
-      if @_child.has_key?(name)
-        optimism = @_child[name]
-        optimism.instance_eval(&blk) if blk
-        return optimism
-
-      else
-        next_optimism = Optimism.new(nil, {_root: _root, _parent: self})
-        self._child[name] = next_optimism
-        next_optimism._eval(&blk)
-        return next_optimism
-      end
-
-    # .name value
+    # p Rc.a.b.c #=> create new <#Optimism>
+    #
+    # a.b do |c|
+    #   c.a = 2
+    # end
+    #
+    # a.b <<-EOF 
+    #   a = 2
+    # EOF
+    #
     else
-      @_child[name] = args[0]
-      return args[0]
+      next_o = Optimism.new(:default => @options[:default])
+      self[name] = next_o # link the node
+      content = args[0]
+      next_o.__send__ :_eval_contained_block, content, &blk if content or blk
+      return next_o
     end
   end
 
@@ -316,7 +365,7 @@ class Optimism
   #       :c => 2>> 
   def inspect(indent="  ")
     rst = ""
-    rst << "<#Optimism\n"
+    rst << "<#Optimism:#{_name}\n"
     _child.each { |k,v|
       rst << "#{indent}#{k.inspect} => "
       rst << (Optimism === v ? "#{v.inspect(indent+"  ")}\n" : "#{v.inspect}\n")
@@ -324,24 +373,6 @@ class Optimism
     rst.rstrip! << ">"
 
     rst
-  end
-
-  def _parse_string(content)
-    bind = binding
-
-    vars = Parser.collect_local_variables(content)
-    content = Parser.compile(content)
-    eval content, bind
-
-    vars.each { |name|
-      value = bind.eval(name)
-      @_child[name.to_sym] = value
-    }
-  end
-
-  def _eval(content)
-    content=_rstrip_content(content)
-    @_child = Optimism.eval(content)._child
   end
 
   alias to_s inspect
@@ -363,36 +394,127 @@ private
     method(:__blk2method)
   end
 
-  # strip left wide-space each line
-  def _rstrip_content(content)
-    content.split("\n").each.with_object("") { |line, memo|
-      memo << line.rstrip + "\n"
+  # @option options [Boolean] :contained
+  def _eval(content=nil, &blk)
+    if content
+      content = Parser::StringBlock2RubyBlock.new(content).evaluate 
+      content = Parser::Path2Lambda.new(content).evaluate
+      _eval_string content
+    elsif blk
+      _eval_block(&blk)
+    end
+    _fix_lambda_values
+  end
+
+  def _eval_contained_block(content=nil, &blk)
+    content ? _eval_string(content) : _eval_block(&blk)
+  end
+
+  def _eval_block(&blk)
+    meth = _blk2method(&blk)
+    blk.arity == 0 ?  meth.call : meth.call(self)
+  end
+
+  # parse the string content
+  #
+  # @param [String] content
+  # @return nil
+  def _eval_string(content)
+    bind = binding
+
+    vars = Parser::CollectLocalVariables.new(content).evaluate
+    eval content, bind
+
+    vars.each { |name|
+      value = bind.eval(name)
+      @_child[name.to_sym] = value
     }
+
+    nil
   end
 
-  def _collect_instance_variables
-    instance_variables.each { |name|
-      # skip @_child ..
-      next if name =~ /^@_/
-
-      value = instance_variable_get(name)
-      @_child[name[1..-1].to_sym]=value
-    } 
-  end
-
+  # I'm rescurive
   def _fix_lambda_values
     @_child.each { |k,v|
-      if Proc==v and v.lambda? 
+      if Proc===v and v.lambda? 
         @_child[k] = v.call
+      elsif Optimism===v
+        v.__send__ :_fix_lambda_values
       end
     }
+  end
+
+  # @see _walk
+  def _walk_down(path, options={})
+    node = self
+    nodes = path.split(".")
+    nodes.each { |name|
+      name = name.to_sym
+      if node._has_key?(name)
+        case node[name]
+        when Optimism
+          node = node[name]
+        else 
+          raise PathError, "wrong path: has a value along the path -- name(#{name}) value(#{node[name].inspect})" 
+        end
+      else
+        if options[:build]
+          new_node = Optimism.new(:default => @options[:default])
+          node[name] = new_node # link the node.
+          node = new_node
+        else
+          raise PathError, "path not exists. -- path: `#{path}'. cur-name: `#{name}'"
+        end
+      end
+    }
+    node
+  end
+
+  # @see _walk
+  #
+  # path: '_.a', _ is root
+  #
+  def _walk_up(path, options={})
+    node = self
+    nodes = path.split(".").reverse
+    nodes.each { |name|
+      name = name.to_sym
+      if node._parent 
+        if node._parent._name == name.to_sym
+          node = node._parent
+        else
+          raise PathError, "wrong path: parent node doen't exists -- parent-name(#{node._parent._name}) current-name(#{name})"
+        end
+      else
+        if options[:build]
+          new_node = Optimism.new(:default => @options[:default])
+          new_node[name] = node # lnk the node.
+          node = new_node
+        else
+          raise PathError, "path doesn't exist. -- path: `#{path}'. cur-name: `#{name}'"
+        end
+      end
+    }
+    node
+  end
+
+  # @see _walk
+  def _walk_down!(path, options={})
+    node = _walk_down(path, options)
+    _replace node
+  end
+
+  # @see _walk
+  def _walk_up!(path, options={})
+    node = _walk_up(path, options)
+    _replace node
   end
 
 end
 
 module Kernel
   # a handy method 
-  def Optimism(default=nil, &blk)
-    Optimism.new default, &blk
+  def Optimism(*args, &blk)
+    Optimism.new *args, &blk
   end
 end
