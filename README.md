@@ -25,7 +25,7 @@ The three levels of configuration include system, user, and cmdline:
 * ~/.foorc
 * `$ foo --list` or `$ ENV[GEMFILE]=x foo`
 
-for example
+<br>
 
 	module Foo
 		Rc = Optimism.require %w(/etc/foo ~/.foorc)
@@ -161,9 +161,9 @@ load configurations from user input.
 ### Access built-in method inside block ###
 
 	Rc = Optimism do |c|
-		p 1            # does't work
-		Optimism.p 1   # works
+		p 1            # doesn't work
 		p.a = 1        # p is a <#Optimism> node
+		Optimism.p 1   # works
 	end
 
 Note: for a list of blocked methods, see Optimism::BUILTIN_METHODS

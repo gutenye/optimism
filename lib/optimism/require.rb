@@ -3,7 +3,7 @@ class Optimism
     # load configuration from file
     #
     # use $: and support home path like '~/.foorc'.
-    # by defualt, it ignore missing files.
+    # by default, it ignore missing files.
     #
     # @example
     #

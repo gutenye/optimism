@@ -109,8 +109,7 @@ class Optimism
   include HashMethodFix
   include RequireInstanceMethod
 
-  # the node name
-  # @param [Symbol] name
+  # the node name, a Symbol
   attr_accessor :_name
 
   # parent node, a <#Optimism>
@@ -138,22 +137,18 @@ class Optimism
   #
   #  # with :default option
   #  rc = Optimism.new(:default => 1)
-  #  rc[:i_donot_exists] #=> 1
+  #  rc.i.donot.exists #=> 1
   #
   #  # with :namespace option
   #  rc = Optimism.new("foo=1", :namespace => "a.b")
-  #  rc.foo #=> 1
-  #  rc._root.a.b.foo #=> 1 
+  #  rc.a.b.foo #=> 1
   #
-    # @overload initialize(content=nil, options={}, &blk)
-    # @overload initialize(options={}, &blk)
-    #
-  # @param [Hash] options
-  # @option options [Object] :default default value for Hash
-  # @option options [String] :name
-  # @option options [String] :namespace
-  #
-  #
+  # @overload initialize(content=nil, options={}, &blk)
+  #   @param [String] content
+  # @overload initialize(options={}, &blk)
+  #   @param [Hash] options
+  #   @option options [Object] :default (nil) default value for Hash
+  #   @option options [String] :namespace
   def initialize(*args, &blk)
     raise ArgumentError, "wong argument -- #{args.inspect}" if args.size > 2
     case v=args.pop
