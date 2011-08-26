@@ -8,8 +8,6 @@ Optimism, a configuration gem for Ruby
 | Documentation: | http://rubydoc.info/gems/optimism/frames
 | Issue Tracker: | https://github.com/GutenYe/optimism/issues
 
-a proposal to [simply the syntax](https://github.com/GutenYe/optimism/issues/9) in 3.0.
-
 Features
 --------
 
@@ -30,83 +28,40 @@ The three levels of configuration include system, user, and cmdline:
 for example
 
 	module Foo
-		Rc = Optimism.require %w(foo/rc ~/.foorc)
+		Rc = Optimism.require %w(/etc/foo ~/.foorc)
 		Rc.gemfile = ENV[GEMFILE]
 	end
 
-### An example ###
-
-	Rc = Optimism do
-		host "localhost"
-		port 8080
-		mail.stmp.address "stmp.gmail.com"
-
-		my.development do  # namespace
-			adapter "postgresql"
-			database "hello_development"
-			username "foo"
-		end
-
-		time proc{|offset| Time.now} # computed attribute
-	end
-
-### An example using alternative syntax ###
+### Ruby-stynax ###
 
 	Rc = Optimism do |c|
 		c.host = "localhost"
 		c.port = 8080
-		c.mail.stmp.address "stmp.gmail.com"
+		c.mail.stmp.address = "stmp.gmail.com"
 
-		my.development do |c|
-			c.adapter = "mysql2"
-			c.database = "hello"
+		my.development do |c|  # namespace
+			c.adapter = "postgresql"
+			c.database = "hello_development"
 			c.username = "foo"
 		end
 
-		c.time = proc{|offset| Time.now}
+		c.time = proc{ |offset| Time.now } # computed attribute
 	end
 
-### An example of some sugar syntax. _works in a file only_ ###
+### String-syntax ###
 
-	# file: foo/rc.rb
-	development:
-		adapter "mysql2"
-		database "hello"
-		username "foo"
+	Rc = Optimism <<-EOF
+		host = "localhost"
+		port = 8080
+		mail.stmp.address = "stmp.gmail.com"
 
-	#=>
+		my.development:
+			adapter = "postgresql"
+			database = "hello_development"
+			username = "foo"
 
-	development do
-		adapter "mysql2"
-		database "hello"
-		username "foo"
-	end
-
-
-**NOTE**: This is not pure ruby syntax, but it works.
-
-### Initialize ###
-
-In order to initialize the configuration object either of the two ways can be used.
-
-	Rc = Optimism.new
-	Rc = Optimism.require "foo/rc"  # from file
-	Rc = Optimism do 
-		a 1 
-	end
-	Rc = Optimism[a: 1]  # from a hash data
-
-	Rc = Optimism.new
-	Rc.production << {a: {b: 1}} #=> Rc.production.a.b is 1 
-	Rc.production << Optimism.require_string("port 8080") #=> Rc.production.port is 1
-
-Initalize with a default value
-
-	Rc = Optimism.new
-	p Rc[:hello] #=> nil
-	Rc = Optimism.new(1)
-	p Rc[:hello] #=> 1
-	p Rc.hello #=> <#Optimism>  be careful, it's a node.
+		time = proc{ |offset| Time.now }
+	EOF
 
 ### Assignment & Access ###
 
@@ -114,185 +69,104 @@ Flexibility has been built in to allow for various ways to assign configuration
 data values and access the same values within your application. Here are some
 examples of how this can be done:
 
-Assignment:
-
-	Rc.age 1
-	Rc.age = 1
-	Rc[:age] = 1
-	Rc["age"] = 1
-
-Access:
-
-	Rc.age    #=> 1
+	# Assignment:
+	Rc = Optimism.new
+	Rc.age = 1     # It's same as Rc[:age] = 1
+	Rc[:age] = 2
+	Rc["age"] = 3
+	# Access:
+	Rc.age    #=> 2 # It's same as Rc[:age]
+	Rc[:age]  #=> 2
+	Rc["age"] #=> 3
 	Rc.age?   #=> true
-	Rc[:age]  #=> 1
-	Rc["age"] #=> 1
-	--- 
-	Optimism do |c|
-		age 2
-		c.age = 2
-		c[:age] = 2
-	end
+
 
 ### Node ###
 
-	Rc = Optimism.new
-	Rc.a.b.c = 1
-	p Rc.a.b.c #=> <#Fixnum 1>
-	p Rc.a.b   #=> <#Optimism>
-	p Rc.a     #=> <#Optimism>
+	Rc = Optimism do
+		a.b = 1
+	end
+	p Rc.a.b  #=> <#Fixnum 1>
+	p Rc.a    #=> <#Optimism>
+	p Rc      #=> <#Optimism>
 	p Rc.i.dont.exists #=> <#Optimism>
-
-	Rc = Optimism.new
-	p Rc.a._empty? #=> true  # if a node is empty?
-	Rc.a.b = 1
-	p Rc.a._empty? #=> false
-	p Optimism===Rc.a     #=> true  # if it is a node?
-	p Optimism===Rc.a.b   #=> false
+	p Rc.foo._empty? #=> true. a node without any data. 
 
 ### Variable & Path ###
 
-	Optimism do
-		age 1
-		p age  #=> 1
-		my do
-			age 2
-			friend do
-				age 3
-				p age     #=> 3
-				p __.age  #=> 2  __ is relative up to 1 times
-				p ___.age #=> 1  ___ and so on is relative up to 2 and so on times
-				p _.age   #=> 1  _ is root
-			end
-		end
-	end
+	Optimism <<-EOF
+		age = 1
 
-### Namespace ###
+		my:
+			age = 2
 
-Either way is fine:
+			friend:
+				age = 3
 
-	Optimism do
-		mail.stmp.address "stmp.gmail.com"
-		mail.stmp do
-			address "stmp.gmail.com"
-		end
-	end
-
-Another namespace example:
-
-	Optimism do
-		age 1 
-
-		my do
-			age 2 
-		end
-
-		my.friend do
-			age 3 
-		end
-	end
-
-
-### Group ###
-
-Use namespace or use some separate files like rails.
-
-	config/
-		applications.rb
-		environments/
-			development.rb
-			test.rb
-			production.rb
+				my_friend_age = age      #=> 3
+				my_age        = __.age   #=> 2  __ is relative up to 1 times
+				root_age      = ___.age  #=> 1  ___ and so on is relative up to 2 and so on times
+				root_age      = _.age    #=> 1 _ is root
+				Optimism.p _.age         # this won't work, path only woks in assignment
+	EOF
+	
 
 ### Computed attribute ###
 
-	Rc = Optimism do
-		time proc{|n| Time.now}
+Computed attribute is a Proc object, you don't need to invoke `#call` expilict.
+
+	Rc = Optimism do |c|
+		c.time = proc{ |n| Time.now }
 	end
-	p Rc.time # print current time. no need Rc.time.call()
-	p Rc.time(2) # call time
-	Rc.time = 2 # assign new value
-	p Rc[:time] #=> <#Proc>
+	p Rc.time   # => 2011-08-26 16:29:16 -0800
+	p Rc[:time] # => <#Proc>
 
 ### Semantic ###
 
-	Optimism do
-		is_started no # yes ...
+	Optimism do |c|
+		c.start = yes
 	end
 
 Note: for a list of semantic methods, see Optimism::Semantics
 
 ### Hash compatibility ###
 
-Internal, datas are stored as a Hash. You can access all hash methods via `_method`
+Internal, datas are stored as a Hash. You can access all hash methods via `_method` way.
 
-	Rc = O.new
-	Rc.a = 1
-	Rc._child #=> {:a=>1}
-
-	Rc._keys #=> [:a]
-
-### Require ###
-
-load configuration from  file. support $:
-
-	Optimism.require %w(
-		foo/rc
-		~/.foorc
+	Rc = Optimism do |c|
+		c.a = 1
 	end
+	p Rc._data #=> {:a => 1}
+	p Rc._keys #=> [:a]
 
-load configuration from string
+### Load configurations ###
 
-	Optimism.require_string <<-EOF
-		my.age = 1
-	EOF
-	
+Load configurations from files. It uses $:
 
-load configuration from environment variable
+	Rc = Optimism.require %w(
+		foo/rc       # APP/lib/foo/rc.rb
+		~/.foorc
+	)
+
+Load configurations from environment variables.
 
 	ENV[OPTIMISM_A_B] = 1
 	Rc = Optimism.require_env(/OPTIMISM_(.*)/) #=> Rc.a_b is 1
-	Rc = Optimism.require_env(/OPTIMISM_(.*)/, split: '_') #=> Rc.a.b is 1
+	Rc = Optimism.require_env(/OPTIMISM_(.*)/, :split => "_") #=> Rc.a.b is 1
 
-load configuration from user input
+load configurations from user input.
 
-	Rc = Optimism.require_input("what's your name?", "my.name") #=> Rc.my.name is whatever you typed in terminal
+	Rc = Optimism.require_input("what's your name?", "my.name") #=> Rc.my.name is foo
 
 ### Access built-in method inside block ###
 
-	Rc = Optimism do
-		sleep 10     # is a data. Rc.sleep #=> 10
-		Optimism.sleep 10   # call builtin 'sleep' method
+	Rc = Optimism do |c|
+		p 1            # does't work
+		Optimism.p 1   # works
+		p.a = 1        # p is a <#Optimism> node
 	end
 
 Note: for a list of blocked methods, see Optimism::BUILTIN_METHODS
-
-### Additional examples ###
-
-	Optimism do
-		name do
-			first "Guten"
-			last  "Ye"
-			is    "#{first} #{last}"
-		end
-	end
-
-	Optimism do
-		_.name = "foo"
-		my.name = "bar"  # _ is optional here.
-	end
-
-\# file: a.rb
-
-	_.host = "localhost"
-	_.port = 8080
-	_.name do |c|
-		c.first = "Guten"
-		c.last = "Tag"
-	end
-
-	my.host = "localhost"
-	my.port = 8080
 
 Contributing
 ------------
@@ -304,11 +178,7 @@ Contributing
 Contributors
 ------------
 
-This project wouldn’t exist without all of our awesome users and contributors. 
-
-* [View our growing list of contributors](https://github.com/GutenYe/optimism/contributors)
-
-Thank you so much!
+* [contributors](https://github.com/GutenYe/optimism/contributors)
 
 Install
 ----------
