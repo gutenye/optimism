@@ -75,11 +75,10 @@ describe Optimism do
   end
 	describe "#inspect" do
 		it "works" do
-      o = Optimism.convert({a: 1, "a" => 2, c: {d: {e: 3}}})
+      o = Optimism.convert({a: 1, c: {d: {e: 3}}})
 			expect = <<-EOF.rstrip
 <#Optimism:_
   :a => 1
-  "a" => 2
   :c => <#Optimism:c
     :d => <#Optimism:d
       :e => 3>>>
@@ -165,7 +164,11 @@ b.c:
 			@rc.a?.should be_true
 		end
 
-		it "#[]" do
+    it "#name? => false if not key" do
+      @rc.dont_exist?.should be_false
+    end
+
+		it "#[] with symbol key" do
 			@rc[:a].should == 1
 		end
 
@@ -191,11 +194,33 @@ b.c:
 
 		it '#["key"]= value' do
       @rc[:a] = 4
-			@rc["a"] = 3
-			@rc["a"].should == 3
       @rc.a.should == 4
 		end
 	end
+
+  context "with option only_symbol_key" do
+    it "default is false" do
+      o = Optimism.new
+      o[:a] = 1
+      o[:a].should == 1
+      o["a"].should == 1
+      o["a"] = 2
+      o["a"].should == 2
+      o[:a].should == 2
+    end
+
+    it "if true" do
+      o = Optimism.new(only_symbol_key: true)
+      o[:a] = 1
+      o[:a].should == 1
+      o["a"].should_not == 1
+      o["a"] = 2
+      o["a"].should == 2
+      o[:a].should_not == 2
+    end
+
+  end
+
 
 	context "namespace" do
 		it "supports basic namespace with ruby-syntax" do
@@ -457,7 +482,6 @@ my:
       o.should == Optimism[a: Optimism[b: 1]]
     end
   end
-
 
   describe "marshal" do
     it "works" do

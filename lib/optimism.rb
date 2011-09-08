@@ -34,6 +34,17 @@ $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
 #  Rc._parent #=>  nil
 #  Rc._root #=> is Rc
 #
+#
+# internal, string-key is converted into symbol-key
+#
+#  Rc = Optimism.new
+#  Rc[:a] = 1
+#  Rc["a"] = 2
+#  p Rc[:a] #=> 2
+#
+# if you want disable it. with :only_symbol_key => ture in constructor function.
+#
+#
 class Optimism
   autoload :VERSION, "optimism/version"
 
@@ -149,6 +160,7 @@ class Optimism
   #   @param [Hash] options
   #   @option options [Object] :default (nil) default value for Hash
   #   @option options [String] :namespace
+  #   @option options [Boolean] :only_symbol_key (nil)
   def initialize(*args, &blk)
     raise ArgumentError, "wong argument -- #{args.inspect}" if args.size > 2
     case v=args.pop
@@ -179,6 +191,10 @@ class Optimism
     if Optimism === value
       value._parent = self 
       value._name = key.to_sym
+    end
+
+    if String===key and !@options[:only_symbol_key]
+      key = key.to_sym
     end
 
     @_child[key] = value
@@ -240,6 +256,10 @@ class Optimism
   end
 
   def [](key)
+    if String===key and !@options[:only_symbol_key]
+      key = key.to_sym
+    end
+
     @_child[key]
   end
 

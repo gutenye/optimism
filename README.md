@@ -90,7 +90,8 @@ examples of how this can be done:
 	p Rc.a    #=> <#Optimism>
 	p Rc      #=> <#Optimism>
 	p Rc.i.dont.exists #=> <#Optimism>
-	p Rc.foo._empty? #=> true. a node without any data. 
+	p Rc.foo?  #=> false
+  p Rc._has_key?(:foo) #=> false
 
 ### Variable & Path ###
 
