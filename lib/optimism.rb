@@ -504,7 +504,6 @@ private
     node = _walk_up(path, options)
     _replace node
   end
-
 end
 
 module Kernel

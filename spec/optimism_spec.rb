@@ -15,7 +15,6 @@ class Optimism
   public :_fix_lambda_values, :_walk
 end
 
-
 describe Optimism do
   # first
   describe "#==" do
@@ -458,4 +457,15 @@ my:
       o.should == Optimism[a: Optimism[b: 1]]
     end
   end
+
+
+  describe "marshal" do
+    it "works" do
+      rc = Optimism.convert({a: 1, b: {c: 2}})
+      content = Marshal.dump(rc)
+      ret = Marshal.load(content)
+      ret.should == rc
+    end
+  end
+
 end
