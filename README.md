@@ -168,6 +168,16 @@ load configurations from user input.
 
 Note: for a list of blocked methods, see Optimism::BUILTIN_METHODS
 
+### More examples ###
+
+	rc = Optimism <<-EOF
+		group:
+			# nil
+	EOF
+
+	rc.group #=> <#Optimism>
+
+
 Contributing
 ------------
 
