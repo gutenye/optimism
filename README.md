@@ -92,6 +92,7 @@ examples of how this can be done:
 	p Rc.i.dont.exists #=> <#Optimism>
 	p Rc.foo?  #=> false
   p Rc._has_key?(:foo) #=> false
+	p Rc[:foo] #=> nil
 
 ### Variable & Path ###
 
