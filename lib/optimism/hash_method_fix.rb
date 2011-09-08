@@ -73,5 +73,15 @@ class Optimism
         return value[path.to_sym]
       end
     end
+
+
+    def _has_key?(key)
+      if String===key and !@options[:only_symbol_key]
+        key = key.to_sym
+      end
+
+      _child.has_key?(key)
+    end
+
   end
 end

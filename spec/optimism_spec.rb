@@ -207,11 +207,13 @@ b.c:
       o["a"] = 2
       o["a"].should == 2
       o[:a].should == 2
+      o._has_key?("a").should be_true
     end
 
     it "if true" do
       o = Optimism.new(only_symbol_key: true)
       o[:a] = 1
+      o._has_key?("a").should be_false
       o[:a].should == 1
       o["a"].should_not == 1
       o["a"] = 2
