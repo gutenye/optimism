@@ -19,17 +19,10 @@ Features
 Introduction
 -------------
 
-The three levels of configuration include system, user, and cmdline:
-
-* /etc/foo or APP/lib/foo/rc.rb
-* ~/.foorc
-* `$ foo --list` or `$ ENV[GEMFILE]=x foo`
-
-<br>
+Load configurations from system and home directory.
 
 	module Foo
 		Rc = Optimism.require %w(/etc/foo ~/.foorc)
-		Rc.gemfile = ENV[GEMFILE]
 	end
 
 ### Ruby-stynax ###
