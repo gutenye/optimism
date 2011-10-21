@@ -8,6 +8,8 @@ Optimism, a configuration gem for Ruby
 | Documentation: | http://rubydoc.info/gems/optimism/frames
 | Issue Tracker: | https://github.com/GutenYe/optimism/issues
 
+Compatibility: MRI-1.9, not support MRI-1.8. 
+
 Features
 --------
 
