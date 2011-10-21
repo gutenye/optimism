@@ -15,7 +15,7 @@ a configuration library for Ruby
 	s.rubyforge_project = 'xx'
   s.required_ruby_version = '>= 1.9.0'
 
-	s.files = `git ls-files`.split('\n')
+	s.files = `git ls-files`.split("\n")
 
   s.add_dependency 'hike', '~>1.2.0'
 end
