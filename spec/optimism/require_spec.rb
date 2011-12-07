@@ -34,12 +34,12 @@ describe Optimism::Require do
     end
 
     it "works on :mixin with :replace" do
-      o = Optimism.require(%w(data/mixin_a data/mixin_b), :mixin => :replace)
+      o = Optimism.require("data/mixin_a", "data/mixin_b", :mixin => :replace)
       o.should == Optimism[a: Optimism[b: 2, c: "foo", d: "bar"]]
     end
 
     it "works on :mixin with :ignore" do
-      o = Optimism.require(%w(data/mixin_a data/mixin_b), :mixin => :ignore)
+      o = Optimism.require("data/mixin_a", "data/mixin_b", :mixin => :ignore)
       o.should == Optimism[a: Optimism[b: 1, c: "foo", d: "bar"]]
     end
 
@@ -82,7 +82,7 @@ describe Optimism::Require do
     end
 
     it "load multiplate environment variables at once" do
-      o = Optimism.require_env(%w(A B))
+      o = Optimism.require_env("A", "B")
       o.should == Optimism[a: "1", b: "2"]
     end
 

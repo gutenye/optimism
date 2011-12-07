@@ -7,12 +7,12 @@ class Optimism
     #
     # @example
     #
-    #   Optimism.require "foo" # first try guten/rc, then try guten/rc.rb 
+    #   Optimism.require "foo"
     #
-    #   Optimism.require %w(
+    #   Optimism.require *%w[
     #     /etc/foo
     #     ~/.foorc
-    #   ) 
+    #   ]
     #
     #   # with option :namespace. add a namespace 
     #   Rc = Optimism <<-EOF, :namespace => 'a.b'
@@ -43,22 +43,22 @@ class Optimism
     #     a.c is "foo"
     #     a.d is "bar"
     #   
-    # @param [Array,String] name_s
-    # @param [Hash] opts
-    # @option opts [String] :namespace wrap into a namespace.
-    # @option opts [Boolean] :mixin (:replace) :replace :ignore
-    # @option opts [Boolean] :ignore_syntax_error not raise SyntaxError 
-    # @option opts [Boolean] :raise_missing_file raise MissingFile
-    # @return [Optimism]
-    #
-    # @param [Hash] opts
-    def require_file(name_s, opts={})
+    # @overload require_file(*paths, o={})
+    #   @param [String] *paths
+    #   @param [Hash] opts
+    #   @option opts [String] :namespace wrap into a namespace.
+    #   @option opts [Boolean] :mixin (:replace) :replace :ignore
+    #   @option opts [Boolean] :ignore_syntax_error not raise SyntaxError 
+    #   @option opts [Boolean] :raise_missing_file raise MissingFile
+    #   @return [Optimism]
+    def require_file(*paths)
+      Hash === paths.last ? opts=paths.pop : opts={}
+
       opts[:mixin] ||= :replace
-      name_s = Array === name_s ? name_s : [name_s]
       error = opts[:ignore_syntax_error] ? SyntaxError : nil
 
       o = Optimism.new
-      name_s.each { |name|
+      paths.each { |name|
         path = find_file(name, opts) 
         unless path
           raise MissingFile if opts[:raise_missing_file]
@@ -79,7 +79,7 @@ class Optimism
         end
       }
 
-      o._walk!('-'+opts[:namespace], :build => true) if opts[:namespace]
+      o._walk!("-#{opts[:namespace]}", :build => true) if opts[:namespace]
 
       o
     end
@@ -97,14 +97,14 @@ class Optimism
     #
     #  # default is case_insensive
     #  require_env("A") #=> Optimism[a: "1"]
-    #  require_env("A", case_sensive: true) #=> Optimism[A: "1"]
+    #  require_env("A", :case_sensive => true) #=> Optimism[A: "1"]
     #
     #  # with Regexp
     #  require_env(/OPTIMISM_(.*)/) #=> Optimism[a: "a", b_c: "b"]
-    #  require_env(/OPTIMISM_(.*), split: "_") #=> Optimism[a: "a", b: Optimism[c: "b"]]
+    #  require_env(/OPTIMISM_(.*), :split => "_") #=> Optimism[a: "a", b: Optimism[c: "b"]]
     #
-    # @overload require_env(env_s, opts={}, &blk)
-    #   @param [String, Array, Regexp] env_s
+    # @overload require_env(*envs, opts={}, &blk)
+    #   @param [String, Regexp] envs
     #   @param [Hash] opts
     #   @option opts [String] :namespace
     #   @option opts [String] :default # see #initiliaze
@@ -112,24 +112,25 @@ class Optimism
     #   @option opts [Boolean] :case_sensive (false)
     #   @return [Optimism] def require_env(*args, &blk)
     def require_env(*args, &blk)
-      if Regexp === args[0]
-        pat = args[0]
-        opts = args[1] || {}
-        envs = ENV.each.with_object({}) { |(key,value), memo|
-          next unless key.match(pat)
-          memo[$1] = key
-        }
+      # e.g. OPTIMISM_A OPTIMISM_B for /OPTIMISM_(.*)/
+      # args => { 'A' => 'value' }
+      Hash === args.last ? opts = args.pop : opts = {}
 
-      elsif String === args[0]
-        envs = {args[0] => args[0]} 
-        opts = args[1] || {}
-
-      elsif Array === args[0]
-        envs = args[0].each.with_object({}) { |v, memo|
-          memo[v] = v
-        }
-        opts = args[1] || {}
+      envs = {}
+      args.each do |env|
+        case env
+        when Regexp
+          ENV.each { |key, value|
+            next unless key.match(env)
+            envs[$1] = key
+          }
+        when String
+          envs[env] = env
+        else
+          raise ArgumentError, "only String and Regexp -- #{env}(#{env.class})"
+        end
       end
+
       opts[:split] ||= /\Z/
 
       o = Optimism.new(:default => opts[:defualt])

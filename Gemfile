@@ -1,12 +1,11 @@
-source "http://rubygems.org"
+source :rubygems
 
-gem "hike", "~>1.2.0"
+gem 'hike', '~>1.2.0'
 
 group :development do
-	gem "rspec"
-	gem "watchr"
-	gem "rag"
-  gem "pd"
+  gem 'rspec'
+  gem 'watchr'
+  gem 'rag'
+  gem 'pd'
 end
 
-#gemspec
