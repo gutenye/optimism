@@ -3,7 +3,7 @@ require 'optimism/version'
 
 Gem::Specification.new do |s|
 	s.name = 'optimism'
-	s.version = Optimism::VERSION::IS
+	s.version = Optimism::VERSION
 	s.summary = 'a configuration library for Ruby'
 	s.description = <<-EOF
 a configuration library for Ruby

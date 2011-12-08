@@ -154,5 +154,4 @@ describe Optimism::Require do
       o.my.status.should == "well"
     end
   end
-
 end
