@@ -177,8 +177,8 @@ class Optimism
     def find_file(name, opts={})
       path = nil
 
-      # ~/.gutenrc
-      if name =~ /^~/
+      # ~/.gutenrc  or ./relative/path or ../relative/path
+      if name =~ %r!^~|^\.\.?/!
         file = File.expand_path(name)
         path = file if File.exists?(file)
 
@@ -186,7 +186,7 @@ class Optimism
       elsif File.absolute_path(name) == name
         path = name if File.exists?(name)
 
-      # relative/rc
+      # name
       else
         hike = Hike::Trail.new
         hike.extensions.push ".rb"

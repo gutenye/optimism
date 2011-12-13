@@ -11,25 +11,33 @@ describe Optimism::Require do
       @rc_path = File.join($spec_dir, "data/rc.rb")
     }
 
-
     it "finds an absolute path" do
       Optimism.find_file(@rc_path).should == @rc_path
     end
 
-    it "finds a relative path" do
-      Optimism.find_file('data/rc').should == @rc_path
+    it "finds a name path" do
+      Optimism.find_file("data/rc").should == @rc_path
     end
 
     it "loads a home path" do
       ENV["HOME"] = $spec_dir
-      Optimism.find_file('~/data/rc.rb').should == File.join(ENV["HOME"], "data/rc.rb")
+      Optimism.find_file("~/data/rc.rb").should == File.join(ENV["HOME"], "data/rc.rb")
     end
 
+    it "finds ./relative/path" do
+      Dir.chdir($spec_dir)
+      Optimism.find_file("./").should == $spec_dir
+    end
+
+    it "finds ../relative/path" do
+      Dir.chdir($spec_dir)
+      Optimism.find_file("../").should == File.expand_path("../", $spec_dir)
+    end
   end
 
   describe ".require_file" do
     it "works with :namespace" do
-      o = Optimism.require("data/rc", :namespace => 'a.b')
+      o = Optimism.require("data/rc", :namespace => "a.b")
       o.should == Optimism[a: Optimism[b: Optimism[a: 1]]]
     end
 
@@ -97,7 +105,7 @@ describe Optimism::Require do
     end
 
     it "load by pattern with :split" do
-      o = Optimism.require_env(/OPTIMISM_(.*)/, :split => '_')
+      o = Optimism.require_env(/OPTIMISM_(.*)/, :split => "_")
       o.should == Optimism[a: "1", b: Optimism[c: "2"]]
     end
 
