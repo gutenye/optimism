@@ -60,6 +60,7 @@ class Optimism
       o = Optimism.new
       paths.each { |name|
         path = find_file(name, opts) 
+
         unless path
           raise MissingFile if opts[:raise_missing_file]
           next

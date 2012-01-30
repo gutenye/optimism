@@ -51,6 +51,7 @@ class Optimism
   Error         = Class.new Exception 
   MissingFile   = Class.new Error
   PathError     = Class.new Error
+  EParse        = Class.new Error
 
   BUILTIN_METHODS = [:p, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open, :send] # not :raise
 
@@ -438,7 +439,13 @@ private
     bind = binding
 
     vars = Parser::CollectLocalVariables.new(content).evaluate
-    eval content, bind
+
+    begin
+      eval content, bind
+    rescue SyntaxError => e
+      raise EParse, "parse config file error.\n CONTENT:  #{content}\n ERROR-MESSAGE: #{e.message}"
+      exit
+    end
 
     vars.each { |name|
       value = bind.eval(name)
