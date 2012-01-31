@@ -57,6 +57,7 @@ class Optimism
 
   class << self
     public *BUILTIN_METHODS 
+    public :undef_method
 
     include Require
 
