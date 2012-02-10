@@ -237,7 +237,7 @@ end
 describe Path2Lambda do
   it "with simple example" do
     content = "foo = _.name"
-    expect = "foo =  lambda { _.name }\n"
+    expect = "foo =  lambda { _.name }.tap{|s| s.instance_variable_set(:@_optimism, true)}\n"
     Path2Lambda.new(content).evaluate.should == expect
   end
 
@@ -248,9 +248,9 @@ foo = ___.name
 foo = true && _foo || _.bar
     EOF
     expect = <<-EOF
-foo =  lambda { _.name }
-foo =  lambda { ___.name }
-foo = true && _foo ||  lambda { _.bar }
+foo =  lambda { _.name }.tap{|s| s.instance_variable_set(:@_optimism, true)}
+foo =  lambda { ___.name }.tap{|s| s.instance_variable_set(:@_optimism, true)}
+foo = true && _foo ||  lambda { _.bar }.tap{|s| s.instance_variable_set(:@_optimism, true)}
     EOF
 
     Path2Lambda.new(content).evaluate.should == expect

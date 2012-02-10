@@ -138,7 +138,7 @@ class Optimism
       def evaluate
         content.split("\n").each.with_object("") { |line, memo|
           line.split(";").each { |stmt|
-            memo << stmt.gsub(/_+\.[a-z_][A-Za-z0-9_]*/){|m| " lambda { #{m} } "}.rstrip
+            memo << stmt.gsub(/_+\.[a-z_][A-Za-z0-9_]*/){|m| " lambda { #{m} }.tap{|s| s.instance_variable_set(:@_optimism, true)} "}.rstrip
             memo << "\n"
           }
         }

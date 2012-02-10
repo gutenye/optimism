@@ -352,7 +352,7 @@ class Optimism
     #
     elsif @_child.has_key?(name)
       value = @_child[name]
-      return Proc===value ? value.call(*args) : value
+      return (Proc===value && value.lambda?) ? value.call(*args) : value
 
     # p Rc.a.b.c #=> create new <#Optimism>
     #
@@ -417,10 +417,12 @@ private
       content = Parser::StringBlock2RubyBlock.new(content).evaluate 
       content = Parser::Path2Lambda.new(content).evaluate
       _eval_string content
+
+      _fix_lambda_values
     elsif blk
       _eval_block(&blk)
     end
-    _fix_lambda_values
+
   end
 
   def _eval_contained_block(content=nil, &blk)
@@ -457,9 +459,20 @@ private
   end
 
   # I'm rescurive
+  #
+  # for 
+  #
+  #  rc = Optimism <<-EOF
+  #    a = _.foo
+  #  EOF
+  #
+  # =>
+  #
+  #  a = lambda{ _.foo }.tap{|s| s.instance_variable_set(:@_optimism, true)
+  #
   def _fix_lambda_values
     @_child.each { |k,v|
-      if Proc===v and v.lambda? 
+      if Proc===v and v.lambda? and v.instance_variable_get(:@_optimism)
         @_child[k] = v.call
       elsif Optimism===v
         v.__send__ :_fix_lambda_values

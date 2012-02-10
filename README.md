@@ -40,7 +40,7 @@ Load configurations from system and home directory.
 			c.username = "foo"
 		end
 
-		c.time = proc{ |offset| Time.now } # computed attribute
+		c.time = lambda{ |offset| Time.now } # computed attribute
 	end
 
 ### String-syntax ###
@@ -55,7 +55,7 @@ Load configurations from system and home directory.
 			database = "hello_development"
 			username = "foo"
 
-		time = proc{ |offset| Time.now }
+		time = lambda{ |offset| Time.now }
 	EOF
 
 ### Assignment & Access ###
@@ -110,10 +110,10 @@ examples of how this can be done:
 
 ### Computed attribute ###
 
-Computed attribute is a Proc object, you don't need to invoke `#call` expilict.
+Computed attribute is a lamda object, you don't need to invoke `#call` expilict.
 
 	Rc = Optimism do |c|
-		c.time = proc{ |n| Time.now }
+		c.time = lambda{ |n| Time.now }
 	end
 	p Rc.time   # => 2011-08-26 16:29:16 -0800
 	p Rc[:time] # => <#Proc>

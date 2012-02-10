@@ -5,7 +5,6 @@ module Optimism::Require
 end
 
 describe Optimism::Require do
-
   describe ".find_file" do
     before(:all) {
       @rc_path = File.join($spec_dir, "data/rc.rb")
@@ -52,7 +51,7 @@ describe Optimism::Require do
     end
 
     it "raise InvalidSyntax" do
-      lambda{ Optimism.require("data/invalid_syntax") }.should raise_error(SyntaxError)
+      lambda{ Optimism.require("data/invalid_syntax") }.should raise_error(Optimism::EParse)
     end
 
     it "not raise MissingFile by default" do

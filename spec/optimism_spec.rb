@@ -109,13 +109,12 @@ EOF
 	end
 
   describe "#_fix_lambda_values" do
-    it "" do
-      rc = Optimism do |c|
-        c.a = lambda { 1 }
-        my do |c|
-          c.a = lambda { 2 }
-        end
-      end
+    it "works" do
+      rc = Optimism <<-EOF
+        a = lambda { 1 }.tap{|s| s.instance_variable_set(:@_optimism, true)}
+        my:
+          a = lambda { 2 }.tap{|s| s.instance_variable_set(:@_optimism, true)}
+      EOF
       rc.should == Optimism[a: 1, my: Optimism[a: 2]]
     end
   end
@@ -222,7 +221,6 @@ b.c:
     end
 
   end
-
 
 	context "namespace" do
 		it "supports basic namespace with ruby-syntax" do
@@ -382,16 +380,22 @@ my:
 	context "computed attribute" do
 		it "works with ruby-syntax" do
 			rc = Optimism do |c|
-				c.count = proc{|n| n}
-        c.count(1).should == 1
+				c.count = lambda{|n| n}
+				c.bar = proc{|n| n}
 			end
+
+      rc.count(1).should == 1
+      rc.bar(1).should be_an_instance_of(Proc)
 		end
 
     it "works with string-syntax" do
       rc = Optimism <<-EOF
-        count = proc{|n| n}
+        count = lambda{|n| n}
+        bar = proc{|n| n}
       EOF
+
       rc.count(1).should == 1
+      rc.bar(1).should be_an_instance_of(Proc)
     end
 
 		it "not call with #[]" do
