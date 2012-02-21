@@ -12,7 +12,7 @@ equal
 =end
 
 class Optimism
-  public :_fix_lambda_values, :_walk
+  public :_fix_lambda_values, :_walk, :_split
 end
 
 describe Optimism do
@@ -95,7 +95,6 @@ EOF
     end
   end
 
-
 	describe ".get" do
 		it "gets data from Hash" do
       data = {a: 1}
@@ -169,6 +168,7 @@ b.c:
 
 		it "#[] with symbol key" do
 			@rc[:a].should == 1
+			@rc[:b].should == nil
 		end
 
     it "return <#Optimism> if key doesn't exist" do
@@ -428,16 +428,6 @@ my:
 		end
 	end
 
-  describe "#_repalce" do
-    it "works" do
-      a = Optimism.convert({foo: {bar: 1}})
-      b = Optimism.new
-      b._replace a.foo
-      b.should == Optimism[bar: 1]
-      b._root.should == a
-    end
-  end
-
   describe "#_walk" do
     it "down along the path" do
       o = Optimism.convert({a: {b: {c: 1}}})
@@ -454,14 +444,14 @@ my:
 
     it "down along the path with :build" do
       o = Optimism.new
-      lambda {node = o._walk('a.b')}.should raise_error(Optimism::PathError)
+      lambda {node = o._walk('a.b')}.should raise_error(Optimism::EPath)
       node = o._walk('a.b', :build => true)
       o.should == Optimism[a: Optimism[b: Optimism.new]]
     end
 
     it "up along the path with :build" do
       o = Optimism.new
-      lambda {node = o._walk('-a.b')}.should raise_error(Optimism::PathError)
+      lambda {node = o._walk('-a.b')}.should raise_error(Optimism::EPath)
       node = o._walk('-a.b', :build => true)
       node.should == Optimism[a: Optimism[b: Optimism.new]]
     end
@@ -481,11 +471,61 @@ my:
     end
   end
 
-  describe "#_set2" do
+  describe "#_split" do
     it "works" do
-      o = Optimism.new
-      o._set2 'a.b', 1, :build => true
-      o.should == Optimism[a: Optimism[b: 1]]
+      Optimism.new._split("foo").should == ["", :foo]
+      Optimism.new._split("foo.bar.baz").should == ["foo.bar", :baz]
+    end
+  end
+
+  describe "#_has_key2?" do
+    it "works" do
+      a = Optimism.convert({foo: {bar: 1}})
+
+      a._has_key2?("foo").should be_true
+      a._has_key2?("foo.bar").should be_true
+      a._has_key2?("bar.baz").should be_false
+      a[:bar].should be_nil
+    end
+  end
+
+  describe "#_fetch2" do
+    before :each do
+			@o = Optimism.convert({a: {b: {c: 1}}})
+    end
+
+		it "works" do
+      @o._fetch2("a.b.c").should == 1
+    end
+
+    it "return default value when path doesn't exists" do
+      @o._fetch2("b.c.d",  2).should == 2
+      @o[:b][:c][:d].should == 2
+    end
+  end
+
+  describe "#_store2" do
+    before :each do
+      @o = Optimism.new
+    end
+
+    it "works with default :build is true" do
+      @o._store2 'a.b', 1
+      @o.should == Optimism[a: Optimism[b: 1]]
+    end
+
+    it "works with :build => false" do
+      lambda {@o._store2('a.b', 1, :build => false)}.should raise_error(Optimism::EPath)
+    end
+  end
+
+  describe "#_repalce" do
+    it "works" do
+      a = Optimism.convert({foo: {bar: 1}})
+      b = Optimism.new
+      b._replace a.foo
+      b.should == Optimism[bar: 1]
+      b._root.should == a
     end
   end
 
@@ -497,5 +537,4 @@ my:
       ret.should == rc
     end
   end
-
 end

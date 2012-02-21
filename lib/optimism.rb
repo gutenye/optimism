@@ -50,7 +50,7 @@ class Optimism
 
   Error         = Class.new Exception 
   MissingFile   = Class.new Error
-  PathError     = Class.new Error
+  EPath     = Class.new Error
   EParse        = Class.new Error
 
   BUILTIN_METHODS = [:p, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open, :send] # not :raise
@@ -186,57 +186,6 @@ class Optimism
     _root
   end
 
-  # set data
-  #
-  def []=(key, value)
-    # link node if value is <#Optimism>
-    if Optimism === value
-      value._parent = self 
-      value._name = key.to_sym
-    end
-
-    if String===key and !@options[:only_symbol_key]
-      key = key.to_sym
-    end
-
-    @_child[key] = value
-  end
-
-  # _set2 like _set, but support a path.
-  # @see _walk
-  #
-  # @exampe
-  #
-  #  o = Optimism.new
-  #  o._set2('a.b', 1) #=> 1, the value of a.b
-  #
-  # @param [Hash] options
-  # @option options [String] :namespace => path
-  # @option options [Boolean] :build
-  # @return [Object] value
-  def _set2(path, value, options={})
-    paths = path.split('.')
-    if paths.size == 1
-      path = ""
-      key = paths[0].to_sym
-    else
-      path = paths[0...-1].join('.')
-      key = paths[-1].to_sym
-    end
-
-    if path =~ /^-/
-      tmp_node = _walk(path, :build => options[:build])
-      tmp_node._walk(options[:namespace], :build => true)
-      node = self
-    else
-      node = _walk(options[:namespace], :build => true)
-      node = node._walk(path, :build => options[:build])
-    end
-    node[key] = value
-
-    value
-  end
-
   # walk along the path.
   #
   # @param [String] path 'a.b' '-a.b'
@@ -257,12 +206,81 @@ class Optimism
     path =~ /^-/ ? _walk_up!(path[1..-1], options) : _walk_down!(path, options)
   end
 
+  # support path
+  def _has_key2?(path)
+    path, key = _split(path)
+
+    begin
+      node = _walk(path)
+    rescue EPath
+      false
+    else
+      node._has_key?(key)
+    end
+  end
+
   def [](key)
+    key = key.to_sym if String===key and !@options[:only_symbol_key]
+
+    @_child[key]
+  end
+
+  # set data
+  #
+  def []=(key, value)
+    # link node if value is <#Optimism>
+    if Optimism === value
+      value._parent = self 
+      value._name = key.to_sym
+    end
+
     if String===key and !@options[:only_symbol_key]
       key = key.to_sym
     end
 
-    @_child[key]
+    @_child[key] = value
+  end
+
+  # support path
+  def _fetch2(path, default=nil)
+    path, key = _split(path)
+
+    node = _walk(path, :build => true)
+
+    if node._has_key?(key)
+      node[key]
+    else
+      node[key] = default
+    end
+  end
+
+  # _store2 like _store, but support a path.
+  # @see _walk
+  #
+  # @exampe
+  #
+  #  o = Optimism.new
+  #  o._store2('a.b', 1) #=> 1, the value of a.b
+  #
+  # @param [Hash] o
+  # @option o [String] :namespace => path
+  # @option o [Boolean] (true) :build
+  # @return [Object] value
+  def _store2(path, value, o={})
+    o = {:build => true}.merge(o)
+    path, key = _split(path)
+
+    if path =~ /^-/
+      tmp_node = _walk(path, :build => o[:build])
+      tmp_node._walk(o[:namespace], :build => true)
+      node = self
+    else
+      node = _walk(o[:namespace], :build => true)
+      node = node._walk(path, :build => o[:build])
+    end
+    node[key] = value
+
+    value
   end
 
   # equal if same _child. not check _parent or _root.
@@ -491,7 +509,7 @@ private
         when Optimism
           node = node[name]
         else 
-          raise PathError, "wrong path: has a value along the path -- name(#{name}) value(#{node[name].inspect})" 
+          raise EPath, "wrong path: has a value along the path -- name(#{name}) value(#{node[name].inspect})" 
         end
       else
         if options[:build]
@@ -499,7 +517,7 @@ private
           node[name] = new_node # link the node.
           node = new_node
         else
-          raise PathError, "path not exists. -- path: `#{path}'. cur-name: `#{name}'"
+          raise EPath, "path not exists. -- path: `#{path}'. cur-name: `#{name}'"
         end
       end
     }
@@ -519,7 +537,7 @@ private
         if node._parent._name == name.to_sym
           node = node._parent
         else
-          raise PathError, "wrong path: parent node doen't exists -- parent-name(#{node._parent._name}) current-name(#{name})"
+          raise EPath, "wrong path: parent node doen't exists -- parent-name(#{node._parent._name}) current-name(#{name})"
         end
       else
         if options[:build]
@@ -527,7 +545,7 @@ private
           new_node[name] = node # lnk the node.
           node = new_node
         else
-          raise PathError, "path doesn't exist. -- path: `#{path}'. cur-name: `#{name}'"
+          raise EPath, "path doesn't exist. -- path: `#{path}'. cur-name: `#{name}'"
         end
       end
     }
@@ -544,6 +562,21 @@ private
   def _walk_up!(path, options={})
     node = _walk_up(path, options)
     _replace node
+  end
+
+  # "foo.bar.baz" => ["foo.bar", :baz]
+  # "foo" => [ "", :foo]
+  def _split(path)
+    paths = path.split('.')
+    if paths.size == 1
+      path = ""
+      key = paths[0].to_sym
+    else
+      path = paths[0...-1].join('.')
+      key = paths[-1].to_sym
+    end
+
+    [ path, key ]
   end
 end
 

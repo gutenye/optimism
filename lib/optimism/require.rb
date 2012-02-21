@@ -139,7 +139,7 @@ class Optimism
         path = opts[:case_sensive] ? path : path.downcase
         path = path.split(opts[:split]).join('.')
         value = blk ? blk.call(ENV[env]) : ENV[env]
-        o._set2(path, value, :build => true)
+        o._store2(path, value)
       }
 
       o._walk!('-'+opts[:namespace], :build => true) if opts[:namespace]
@@ -161,17 +161,16 @@ class Optimism
     # @option opts [Object] :namespace
     # @option opts [Object] :default use this default if user doesn't input anything.
     # @return [Optimism]
-    def require_input(msg, path, opts={}, &blk)
-      default = opts[:default] ? "(#{opts[:default]})"  : ""
-      opts[:build] = opts.has_key?(:build) ? opts[:build] : true
+    def require_input(msg, path, o={}, &blk)
+      default = o[:default] ? "(#{o[:default]})"  : ""
       print msg+default
       value = gets.strip
-      value = value.empty? ? opts[:default] : value
+      value = value.empty? ? o[:default] : value
       value = blk ? blk.call(value) : value
-      o = Optimism.new
-      o._set2 path, value, opts
+      rc = Optimism.new
+      rc._store2 path, value, o
 
-      o._root
+      rc._root
     end
 
   private
