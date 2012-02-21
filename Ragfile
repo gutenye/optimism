@@ -1,0 +1,5 @@
+# add your own task in Ragfile or in tasks/*.rag
+class Rag < Thor
+end
+
+# vim: filetype=ruby

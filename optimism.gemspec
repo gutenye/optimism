@@ -1,10 +1,4 @@
-$: << "lib"
-require "optimism/version"
-
-ap $"
-
-pd Optimism::VERSION
-
+Kernel.load File.expand_path("../lib/optimism/version.rb", __FILE__)
 
 Gem::Specification.new do |s|
 	s.name = "optimism"
