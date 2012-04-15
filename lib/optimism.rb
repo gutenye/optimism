@@ -412,7 +412,12 @@ class Optimism
 
   alias to_s inspect
 
+  def to_hash
+    _data
+  end
+
 private
+
   # convert block to method.
   #
   #   you can call a block with arguments

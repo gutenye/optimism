@@ -428,6 +428,11 @@ my:
 		end
 	end
 
+  describe "#to_hash" do
+    o = Optimism.convert({a: {b: {c: 1}}})
+    o.to_hash.should == {a: Optimism.convert({b: {c: 1}})}
+  end
+
   describe "#_walk" do
     it "down along the path" do
       o = Optimism.convert({a: {b: {c: 1}}})
