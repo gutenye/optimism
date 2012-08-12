@@ -67,7 +67,7 @@ class Optimism
         end
 
         begin
-          new = Optimism(File.read(path))
+          new = Optimism.new(File.read(path))
         rescue error
         end
 

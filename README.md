@@ -1,5 +1,4 @@
-Optimism, a configuration gem for Ruby
-====================================
+# Optimism, a configuration gem for Ruby [![Build Status](https://secure.travis-ci.org/GutenYe/optimism.png)](http://travis-ci.org/GutenYe/optimism)
 
 | Homepage:      | https://github.com/GutenYe/optimism
 |----------------|--------------------------------------
@@ -8,7 +7,7 @@ Optimism, a configuration gem for Ruby
 | Documentation: | http://rubydoc.info/gems/optimism/frames
 | Issue Tracker: | https://github.com/GutenYe/optimism/issues
 
-Compatibility: MRI-1.9, not support MRI-1.8. 
+Note: not support ruby1.8
 
 Features
 --------
