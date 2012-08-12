@@ -7,8 +7,6 @@
 | Documentation: | http://rubydoc.info/gems/optimism/frames
 | Issue Tracker: | https://github.com/GutenYe/optimism/issues
 
-Note: not support ruby1.8, jruby, rubinius
-
 Features
 --------
 
@@ -198,6 +196,11 @@ Resources
 * [configatron](https://github.com/markbates/configatron) A super cool, simple, and feature rich configuration system for Ruby apps 
 * [simpleconfig](https://github.com/lukeredpath/simpleconfig) make application-wide configuration settings easy to set and access in an object-oriented fashion
 * [configuration](https://github.com/ahoward/configuration) pure ruby scoped configuration files 
+
+Requirements
+------------
+
+* ruby 1.9.3
 
 Copyright
 ---------
