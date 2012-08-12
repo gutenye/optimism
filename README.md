@@ -7,7 +7,7 @@
 | Documentation: | http://rubydoc.info/gems/optimism/frames
 | Issue Tracker: | https://github.com/GutenYe/optimism/issues
 
-Note: not support ruby1.8
+Note: not support ruby1.8, jruby, rubinius
 
 Features
 --------
