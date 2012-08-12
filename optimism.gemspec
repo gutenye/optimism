@@ -12,7 +12,6 @@ a configuration library for Ruby
 	s.email = "ywzhaifei@Gmail.com"
 	s.homepage = "http://github.com/GutenYe/optimism"
 	s.rubyforge_project = "xx"
-  s.required_ruby_version = ">= 1.9.0"
 
 	s.files = `git ls-files`.split("\n")
 
