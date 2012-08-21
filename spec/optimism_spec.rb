@@ -1,81 +1,52 @@
 require "spec_helper"
 $:.unshift $spec_dir
 
-=begin
-
-quick create a <#Optimism>
-  * Optimism.convert({a: {b: 2}})
-  * Optimism[a: Optimism[b: 1]] # each node has no _parent and _root.
-
-equal
-  o1 == o2 # check Class, and _child. not check _parent or _root
-=end
-
 class Optimism
   public :_fix_lambda_values, :_walk, :_split
+end
+
+def build(hash)
+  o = Optimsm.new
+  o._data = hash
+  o
 end
 
 describe Optimism do
   # first
   describe "#==" do
     it "" do
-      a = Optimism.new
-      a._child = {a: 1}
-
-      b = Optimism.new
-      b._child = {a: 1}
+      a = build(a: 1)
+      b = build(a: 1)
 
       a.should == b 
     end
   end
-	describe ".[]" do
-		it "converts Hash to Optimism" do
-      o = Optimism[a: Optimism[b: 1]]
 
-      a = Optimism.new
-      a._child = {b: 1}
-      right = Optimism.new
-      right._child = {a: a}
-
-      o.should == right
-		end
-
-		it "converts Optimism to Optimism" do
-      node = Optimism[a: 1]
-
-      Optimism[node].should == node
-		end
-	end
-  describe ".convert" do
+  describe ".[]" do
     it "simple hash data" do
-      Optimism.convert({a: 1}).should == Optimism[a: 1]
+      Optimism({a: 1}).should == build(a: 1)
     end
 
     it "complex hash data" do
-      #Optimism.convert({a: 1, b: {c: 1}}).should == Optimism[a: 1, b: Optimism[c: 1]]
-      o = Optimism.convert({a: 1, b: {c: 1}})
+      Optimism({a: 1, b: {c: 1}}).should == build(a: 1, b: build(c: 1))
     end
 
     it "simple optimism data " do
-      o = Optimism[a: 1]
-      Optimism.convert(o).should == o
+      o = Optimism(a: 1)
+      Optimism(o).should == o
     end
 
     it "complex optimism data" do
-      data = {
-        a: 1,
-        b: Optimism[c: 2],
-        c: {
-          e: Optimism[d: 3] 
-        }
-      }
-      right = Optimism[a: 1, b: Optimism[c: 2], c: Optimism[e: Optimism[d: 3]]]
-      Optimism.convert(data).should == right
+      data = { a: 1, b: build(c: 2), d: {e: 3}
+      right = build(a: 1, b: build(c: 2), d: build(e: 3)))
+
+      Optimism(data).should == right
     end
   end
+
 	describe "#inspect" do
 		it "works" do
-      o = Optimism.convert({a: 1, c: {d: {e: 3}}})
+      o = Optimism({a: 1, c: {d: {e: 3}}})
 			expect = <<-EOF.rstrip
 <#Optimism:_
   :a => 1
@@ -90,7 +61,7 @@ EOF
 
   describe "#_root" do
     it "works" do
-      o = Optimism.convert({a: {b: {c: 1}}})
+      o = Optimism({a: {b: {c: 1}}})
       o.a.b._root.should == o
     end
   end
@@ -101,8 +72,8 @@ EOF
 			Optimism.get(data).should == {a: 1}
 		end
 		it "gets data from Optimism" do
-			o = Optimism.new
-			o._child = {a: 1}
+			o = lptimism.new
+			o._data = {a: 1}
 			Optimism.get(o).should == {a: 1}
 		end
 	end
@@ -114,7 +85,7 @@ EOF
         my:
           a = lambda { 2 }.tap{|s| s.instance_variable_set(:@_optimism, true)}
       EOF
-      rc.should == Optimism[a: 1, my: Optimism[a: 2]]
+      rc.should == Optimism({a: 1, my: {a: 2}})
     end
   end
 
@@ -126,7 +97,7 @@ EOF
           c.d = _.a
         end
       end
-      rc.should == Optimism[b: Optimism[c: Optimism[d: 1]], a: 1]
+      rc.should == Optimism({b: {c: {d: 1}}, a: 1})
     end
   end
 
@@ -135,7 +106,7 @@ EOF
       rc = Optimism <<-EOF
 a = 1
       EOF
-      rc.should == Optimism[a: 1]
+      rc.should == Optimism({a: 1})
     end
 
     it "with complex example" do
@@ -144,14 +115,14 @@ a = 1
 b.c:
   d = _.a
       EOF
-      rc.should == Optimism[b: Optimism[c: Optimism[d: 1]], a: 1]
+      rc.should == Optimism({b: {c: {d: 1}}, a: 1})
     end
   end
 
 	context "access" do
 		before :all do
-			@rc = Optimism[a: 1]
-			@rc._child = {a: 1} 
+			@rc = Optimism({a: 1})
+			@rc._data = {a: 1} 
 		end
 
 		it "#name" do
@@ -211,7 +182,7 @@ b.c:
     end
 
     it "if true" do
-      o = Optimism.new(only_symbol_key: true)
+      o = Optimism.new(nil, only_symbol_key: true)
       o[:a] = 1
 
       o[:a].should == 1
@@ -229,14 +200,14 @@ b.c:
 			rc = Optimism do |c|
 				c.a.b.c = 1
 			end
-			rc.should == Optimism[a: Optimism[b: Optimism[c:1]]]
+			rc.should == Optimism({a: {b: {c:1}}})
 		end
 
     it "supports basic namespace with string-syntax" do
       rc = Optimism <<-EOF
 a.b.c = 1
       EOF
-      rc.should == Optimism[a: Optimism[b: Optimism[c: 1]]]
+      rc.should == Optimism({a: {b: {c: 1}}})
     end
 
 		it "supports basic2 namespace with ruby-syntax" do
@@ -245,7 +216,7 @@ a.b.c = 1
           c.c = 1
         end
 			end
-			rc.should == Optimism[a: Optimism[b: Optimism[c:1]]]
+			rc.should == Optimism({a: {b: {c:1}}})
 		end
 
     it "supports basic2 namespace with string-syntax" do
@@ -253,7 +224,7 @@ a.b.c = 1
 a.b:
   c = 1
       EOF
-      rc.should == Optimism[a: Optimism[b: Optimism[c: 1]]]
+      rc.should == Optimism({a: {b: {c: 1}}})
     end
 
 			it "supports complex namespace with ruby-syntax" do
@@ -269,7 +240,7 @@ a.b:
 					end
 				end
 
-				rc.should == Optimism[age: 1, my: Optimism[age: 2, friend: Optimism[age: 3]]]
+				rc.should == Optimism({age: 1, my: {age: 2, friend: {age: 3}}})
 			end
 
 			it "supports complex namespace with string-syntax" do
@@ -283,7 +254,7 @@ my:
     age = 3
         EOF
 
-        rc.should == Optimism[age: 1, my: Optimism[age: 2, friend: Optimism[age: 3]]]
+				rc.should == Optimism({age: 1, my: {age: 2, friend: {age: 3}}})
       end
 	end
 
@@ -419,7 +390,7 @@ my:
 
 	context "hash compatibility" do
 		it "works" do
-			rc = Optimism[a: 1]
+			rc = Optimism(a: 1)
 			rc._keys.should == [:a]
 		end
 
@@ -431,19 +402,19 @@ my:
 	end
 
   describe "#_to_hash" do
-    o = Optimism.convert({a: {b: {c: 1}}})
-    o._to_hash.should == {a: Optimism.convert({b: {c: 1}})}
+    o = Optimism({a: {b: {c: 1}}})
+    o._to_hash.should == {a: Optimism({b: {c: 1}})}
   end
 
   describe "#_walk" do
     it "down along the path" do
-      o = Optimism.convert({a: {b: {c: 1}}})
+      o = Optimism({a: {b: {c: 1}}})
       node = o._walk('a.b')
-      node.should == Optimism[c: 1]
+      node.should == Optimism({c: 1})
     end
 
     it "up along the path" do
-      o = Optimism.convert({a: {b: {c: 1}}})
+      o = Optimism({a: {b: {c: 1}}})
       node = o._walk('a.b')
       node2 = node._walk('-_.a')
       node2.should == o
@@ -453,14 +424,14 @@ my:
       o = Optimism.new
       lambda {node = o._walk('a.b')}.should raise_error(Optimism::EPath)
       node = o._walk('a.b', :build => true)
-      o.should == Optimism[a: Optimism[b: Optimism.new]]
+      o.should == Optimism(a: {b: Optimism.new})
     end
 
     it "up along the path with :build" do
       o = Optimism.new
       lambda {node = o._walk('-a.b')}.should raise_error(Optimism::EPath)
       node = o._walk('-a.b', :build => true)
-      node.should == Optimism[a: Optimism[b: Optimism.new]]
+      node.should == Optimism(a: {b: Optimism.new})
     end
   end
 
@@ -468,13 +439,13 @@ my:
     it "down along the path" do
       o = Optimism.new
       o._walk!('a.b', :build => true)
-      o._root.should == Optimism[a: Optimism[b: Optimism.new]]
+      o._root.should == Optimism(a: {b: Optimism.new})
     end
 
     it "up along the path" do
       o = Optimism.new
       o._walk!('-a.b', :build => true)
-      o.should == Optimism[a: Optimism[b: Optimism.new]]
+      o.should == Optimism(a: {b: Optimism.new})
     end
   end
 
@@ -487,7 +458,7 @@ my:
 
   describe "#_has_key2?" do
     it "works" do
-      a = Optimism.convert({foo: {bar: 1}})
+      a = Optimism({foo: {bar: 1}})
 
       a._has_key2?("foo").should be_true
       a._has_key2?("foo.bar").should be_true
@@ -498,7 +469,7 @@ my:
 
   describe "#_fetch2" do
     before :each do
-			@o = Optimism.convert({a: {b: {c: 1}}})
+			@o = Optimism({a: {b: {c: 1}}})
     end
 
 		it "works" do
@@ -518,7 +489,7 @@ my:
 
     it "works with default :build is true" do
       @o._store2 'a.b', 1
-      @o.should == Optimism[a: Optimism[b: 1]]
+      @o.should == Optimism({a: {b: 1}})
     end
 
     it "works with :build => false" do
@@ -528,17 +499,17 @@ my:
 
   describe "#_repalce" do
     it "works" do
-      a = Optimism.convert({foo: {bar: 1}})
+      a = Optimism({foo: {bar: 1}})
       b = Optimism.new
       b._replace a.foo
-      b.should == Optimism[bar: 1]
+      b.should == Optimism(bar: 1)
       b._root.should == a
     end
   end
 
   describe "marshal" do
     it "works" do
-      rc = Optimism.convert({a: 1, b: {c: 2}})
+      rc = Optimism({a: 1, b: {c: 2}})
       content = Marshal.dump(rc)
       ret = Marshal.load(content)
       ret.should == rc
@@ -550,10 +521,10 @@ my:
       o = Optimism.new
 
       o.b._merge! a: 1
-      o.should == Optimism[b: Optimism[a: 1]]
+      o.should == Optimism({b: {a: 1}})
 
-      o.b._merge! Optimism[a: 2]
-      o.should == Optimism[b: Optimism[a: 2]]
+      o.b._merge! Optimism({a: 2})
+      o.should == Optimism({b: {a: 2}})
     end
 
     #
@@ -585,7 +556,7 @@ my:
       end
 
       o._merge! o2
-      o.should == Optimism[a: Optimism[b: 2, c: "foo", d: "bar"], b: Optimism[c: "x"]]
+      o.should == Optimism({a: {b: 2, c: "foo", d: "bar"}, b: {c: "x"}})
     end
 
     it "(string)" do  
@@ -594,7 +565,7 @@ my:
         a = 1
       EOF
 
-      o.should == Optimism.convert({a: 1})
+      o.should == Optimism({a: 1})
     end
   end
 
@@ -603,7 +574,7 @@ my:
       o = Optimism.new
       new = o._merge a: 1
       o.should == o
-      new.should == Optimism[a: 1]
+      new.should == Optimism(a: 1)
     end
   end
 

@@ -7,10 +7,10 @@ describe Optimism do
       o = Optimism.new
 
       o.b._merge! a: 1
-      o.should == Optimism[b: Optimism[a: 1]]
+      o.should == Optimism({b: {a: 1}})
 
-      o.b._merge! Optimism[a: 2]
-      o.should == Optimism[b: Optimism[a: 2]]
+      o.b._merge! Optimism({a: 2})
+      o.should == Optimism({b: {a: 2}})
     end
 
     #
@@ -42,7 +42,7 @@ describe Optimism do
       end
 
       o._merge! o2
-      o.should == Optimism[a: Optimism[b: 2, c: "foo", d: "bar"], b: Optimism[c: "x"]]
+      o.should == Optimism({a: {b: 2, c: "foo", d: "bar"}, b: {c: "x"}})
     end
   end
 
@@ -51,7 +51,7 @@ describe Optimism do
       o = Optimism.new
       new = o._merge a: 1
       o.should == o
-      new.should == Optimism[a: 1]
+      new.should == Optimism({a: 1})
     end
   end
 

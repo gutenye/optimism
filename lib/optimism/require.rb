@@ -47,36 +47,30 @@ class Optimism
     #   @param [String] *paths
     #   @param [Hash] opts
     #   @option opts [String] :namespace wrap into a namespace.
-    #   @option opts [Boolean] :mixin (:replace) :replace :ignore
-    #   @option opts [Boolean] :ignore_syntax_error not raise SyntaxError 
-    #   @option opts [Boolean] :raise_missing_file raise MissingFile
+    #   @option opts [Boolean] :merge (:replace) :replace :ignore
     #   @return [Optimism]
     def require_file(*paths)
-      Hash === paths.last ? opts=paths.pop : opts={}
-
-      opts[:mixin] ||= :replace
-      error = opts[:ignore_syntax_error] ? SyntaxError : nil
+      paths, optimism_opts = Util.extract_options(paths, merge: :replace)
+      opts = [:namespace, :merge, :raise].each.with_object({}){|n, m|
+        m[n] = optimsm_opts.delete(n)
+      }
 
       o = Optimism.new
       paths.each { |name|
-        path = find_file(name, opts) 
+        path = find_file(name, {raise: opts[:raise]}) 
 
-        unless path
-          raise MissingFile if opts[:raise_missing_file]
-          next
+        if File.extname(path) == "yml"
+          opts[:parser] = YAML.optimism_parser
         end
 
-        begin
-          new = Optimism.new(File.read(path))
-        rescue error
-        end
+        o2 = Optimism.new(File.read(path), optimism_opts)
 
-        case opts[:mixin] 
+        case opts[:merge] 
         when :replace
-          o << new 
+          o << o2 
         when :ignore
-          new << o
-          o = new
+          o2 << o
+          o = o2
         end
       }
 
@@ -85,7 +79,19 @@ class Optimism
       o
     end
 
+    # same as require_file with raising error.
+    #
+    # raise MissingFile
+    #
+    # @see require_file
+    def require_file!(*paths)
+      paths, opts = Util.extract_options(paths)
+      opts[:raise] = true
+      require_file(*paths, opts)
+    end
+
     alias require require_file
+    alias require! require_file!
 
     # load configuration from environment variables.
     # @see require_file
@@ -97,12 +103,12 @@ class Optimism
     #  ENV["OPTIMISM_B_C] = "b"
     #
     #  # default is case_insensive
-    #  require_env("A") #=> Optimism[a: "1"]
-    #  require_env("A", :case_sensive => true) #=> Optimism[A: "1"]
+    #  require_env("A")                      -> Optimism({a: 1})
+    #  require_env("A", case_sensive: true)  -> Optimism({A: 1})
     #
     #  # with Regexp
-    #  require_env(/OPTIMISM_(.*)/) #=> Optimism[a: "a", b_c: "b"]
-    #  require_env(/OPTIMISM_(.*), :split => "_") #=> Optimism[a: "a", b: Optimism[c: "b"]]
+    #  require_env(/OPTIMISM_(.*)/)                 -> Optimism({a: "a", b_c: "b"})
+    #  require_env(/OPTIMISM_(.*), :split => "_")   -> Optimism({a: "a", b: {c: "b"}})
     #
     # @overload require_env(*envs, opts={}, &blk)
     #   @param [String, Regexp] envs
@@ -134,7 +140,7 @@ class Optimism
 
       opts[:split] ||= /\Z/
 
-      o = Optimism.new(:default => opts[:defualt])
+      o = Optimism.new(nil, default: opts[:defualt])
       envs.each { |path, env|
         path = opts[:case_sensive] ? path : path.downcase
         path = path.split(opts[:split]).join('.')
@@ -174,6 +180,7 @@ class Optimism
     end
 
   private
+    # option opts [Hash] :raise 
     def find_file(name, opts={})
       path = nil
 
@@ -188,11 +195,15 @@ class Optimism
 
       # name
       else
-        hike = Hike::Trail.new
-        hike.extensions.push ".rb"
-        hike.paths.replace $:
-        path = hike.find(name)
+        path = $:.find.with_object("") { |p, file|
+          [".rb", ".yml", ""].each { |ext|
+            file.replace File.join(p, name+ext)
+            File.exists? file
+          }
+        }
       end
+
+      raise MissingFile if path.nil? and opts[:raise] then
 
       path
     end

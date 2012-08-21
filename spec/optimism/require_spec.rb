@@ -37,17 +37,17 @@ describe Optimism::Require do
   describe ".require_file" do
     it "works with :namespace" do
       o = Optimism.require("data/rc", :namespace => "a.b")
-      o.should == Optimism[a: Optimism[b: Optimism[a: 1]]]
+      o.should == Optimism({a: {b: {a: 1}}})
     end
 
     it "works on :mixin with :replace" do
       o = Optimism.require("data/mixin_a", "data/mixin_b", :mixin => :replace)
-      o.should == Optimism[a: Optimism[b: 2, c: "foo", d: "bar"]]
+      o.should == Optimism({a: {b: 2, c: "foo", d: "bar"}})
     end
 
     it "works on :mixin with :ignore" do
       o = Optimism.require("data/mixin_a", "data/mixin_b", :mixin => :ignore)
-      o.should == Optimism[a: Optimism[b: 1, c: "foo", d: "bar"]]
+      o.should == Optimism({a: {b: 1, c: "foo", d: "bar"}})
     end
 
     it "raise InvalidSyntax" do
@@ -73,29 +73,29 @@ describe Optimism::Require do
 
     it "load an environment variable" do
       o = Optimism.require_env("A")
-      o.should == Optimism[a: "1"]
+      o.should == Optimism({a: "1"})
     end
 
     it "with :case_sensive option" do
       o = Optimism.require_env("A", :case_sensive => true)
-      o.should == Optimism[A: "1"]
+      o.should == Optimism({A: "1"})
     end
 
     it "support block, convert value to integer." do
       o = Optimism.require_env("A") { |a|
         a.to_i
       }
-      o.should == Optimism[a: 1]
+      o.should == Optimism({a: 1})
     end
 
     it "load multiplate environment variables at once" do
       o = Optimism.require_env("A", "B")
-      o.should == Optimism[a: "1", b: "2"]
+      o.should == Optimism({a: "1", b: "2"})
     end
 
     it "load by pattern" do
       o = Optimism.require_env(/OPTIMISM_(.*)/)
-      o.should == Optimism[a: "1", b_c: "2"]
+      o.should == Optimism({a: "1", b_c: "2"})
     end
 
     it "load by pattern, but env not exists" do
@@ -105,7 +105,7 @@ describe Optimism::Require do
 
     it "load by pattern with :split" do
       o = Optimism.require_env(/OPTIMISM_(.*)/, :split => "_")
-      o.should == Optimism[a: "1", b: Optimism[c: "2"]]
+      o.should == Optimism({a: "1", b: {c: "2"}})
     end
 
   end
@@ -116,7 +116,7 @@ describe Optimism::Require do
         def gets() "guten\n" end
       end
       o = Optimism.require_input("what's your name?", "my.name")
-      o.should == Optimism[my: Optimism[name: "guten"]]
+      o.should == Optimism({my: {name: "guten"}})
     end
 
     it "with :default option" do
@@ -124,7 +124,7 @@ describe Optimism::Require do
         def gets() "\n" end
       end
       o = Optimism.require_input("what's your name?", "my.name", default: "foo")
-      o.should == Optimism[my: Optimism[name: "foo"]]
+      o.should == Optimism({my: {name: "foo"}})
     end
 
     it "call with block" do
@@ -132,7 +132,7 @@ describe Optimism::Require do
         def gets() "1\n" end
       end
       o = Optimism.require_input("how old are you?", "age") { |age| age.to_i }
-      o.should == Optimism[age: 1]
+      o.should == Optimism({age: 1})
     end
   end
 

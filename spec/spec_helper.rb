@@ -44,3 +44,9 @@ private
     end
   end
 end
+
+class Optimism
+  class << self
+    public :[]
+  end
+end

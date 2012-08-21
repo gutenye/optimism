@@ -1,6 +1,6 @@
-class Optimism
-  module Parser
-    class Base
+class Optimism # ::Filter
+  class Parser
+    class Filter
       attr_accessor :content
 
       # input any thing
@@ -26,7 +26,7 @@ class Optimism
     #     database 'postgresql'
     #   end
     #
-    class StringBlock2RubyBlock < Base
+    class StringBlock2RubyBlock < Filter
       INDENT="  "
 
       # the string data.
@@ -47,7 +47,7 @@ class Optimism
           case token
           when :block_start
             block_indent_counts << indent_counts
-            statement = statement.sub(/\s*:/, " <<-OPTIMISM_EOF#{block_index}" )
+            statement = statement.sub(/\s*:/, " <<-OPTIMISM#{block_index}" )
             block_index += 1
             script << statement << "\n"
           when :statement
@@ -61,7 +61,7 @@ class Optimism
             indent_counts -= 1
             if indent_counts == block_indent_counts[-1]
               block_index -= 1
-              script << INDENT*(indent_counts) + "OPTIMISM_EOF#{block_index}\n"
+              script << INDENT*(indent_counts) + "OPTIMISM#{block_index}\n"
               block_indent_counts.pop
             else
               script << INDENT*(indent_counts)
@@ -130,7 +130,7 @@ class Optimism
     #   foo = ___.name
     #   foo = true && _foo || _.bar
     #
-    class Path2Lambda < Base
+    class Path2Lambda < Filter
       def initialize(content)
         @content = content
       end
@@ -138,14 +138,25 @@ class Optimism
       def evaluate
         content.split("\n").each.with_object("") { |line, memo|
           line.split(";").each { |stmt|
-            memo << stmt.gsub(/_+\.[a-z_][A-Za-z0-9_]*/){|m| " lambda { #{m} }.tap{|s| s.instance_variable_set(:@_optimism, true)} "}.rstrip
+            memo << stmt.gsub(/_+\.[a-z_][A-Za-z0-9_]*/){|m| " lambda { #{m} }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)} "}.rstrip
             memo << "\n"
           }
         }
       end
     end
 
-    class CollectLocalVariables < Base
+    #
+    #   a <<-OPTIMISM0
+    #     name = 2
+    #     b <<-OPTIMISM1
+    #       age = 1
+    #     OPTIMISM1
+    #   OPTIIMMS0
+    #
+    # ->
+    #
+    #  [:name]
+    class CollectLocalVariables < Filter
       LOCAL_VARIABLE_PAT=/(.*?)([a-zA-Z_.][a-zA-Z0-9_]*)\s*=[^~=]/
 
       # @return [Array] local_variable_names
@@ -158,7 +169,7 @@ class Optimism
         content.scan(LOCAL_VARIABLE_PAT).each.with_object([]) { |match, memo|
           name = match[1]
           next if name=~/^[A-Z.]/ # constant and method
-          memo << name
+          memo << name.to_sym
         }
       end
 
@@ -166,24 +177,113 @@ class Optimism
 
       # @example
       #   c = 1
-      #   a <<-OPTIMISM_EOF
+      #   a <<-OPTIMISM
       #    b = 2
-      #   OPTIMISM_EOF
+      #   OPTIMISM
       # #=>
       #   c = 1
       def remove_block_string(content)
         content.gsub(/
           (?<brace>
-           (\A|\n)[^\n]+<<-OPTIMISM_EOF[0-9]+
+           (\A|\n)[^\n]+<<-OPTIMISM[0-9]+
              (
-                 (?!<<-OPTIMISM_EOF|OPTIMISM_EOF). 
+                 (?!<<-OPTIMISM|OPTIMISM). 
                |
                  \g<brace>
              )*
-           OPTIMISM_EOF[0-9]+
+           OPTIMISM[0-9]+
           )/mx, '')
       end
     end
   end
 end
 
+class Optimism # ::Parser
+  class Parser
+    def self.parse!(optimism, *args)
+      new(optimism).parse!(*args)
+    end
+
+    def initialize(optimism)
+      @optimism = optimism
+    end
+
+    def parse!(content=nil, &blk)
+      if content
+        eval_content(content)
+      elsif blk
+        eval_block(&blk)
+      end
+    end
+
+    private
+
+    #
+    # a.b do |c|
+    #   c.pi = 3.14
+    # end
+    def eval_block(&blk)
+      @optimism.__send__ :instance_exec, @optimism, &blk
+    end
+
+    def eval_content(content)
+      content = Parser::StringBlock2RubyBlock.new(content).evaluate 
+      content = Parser::Path2Lambda.new(content).evaluate
+
+      eval_string(content)
+
+      fix_lambda_path(@optimism)
+    end
+
+    # parse the string content
+    #
+    # @param [String] content
+    # @return nil
+    def eval_string(content)
+      vars = Parser::CollectLocalVariables.new(content).evaluate
+
+      begin
+        bind = @optimism.instance_eval do
+          bind = binding
+          eval content, bind
+          bind
+        end
+      rescue SyntaxError => e
+        raise EParse, "parse config file error.\n CONTENT:  #{content}\n ERROR-MESSAGE: #{e.message}"
+        exit
+      end
+
+      vars.each { |name|
+        value = bind.eval(name.to_s)
+        @optimism._data[name] = value
+      }
+
+      nil
+    end
+
+    # I'm rescurive
+    #
+    #  rc = Optimism <<EOF
+    #    a = _.foo  -> a = lambda{ _.foo }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)
+    #  EOF
+    #  ->
+    #    a = 1
+    def fix_lambda_path(optimism)
+      data = optimism._data
+
+      data.each { |k,v|
+        if Proc === v and v.lambda? and v.instance_variable_get(:@_is_optimism_path)
+          data[k] = v.call
+        elsif Optimism === v
+          fix_lambda_path(v)
+        end
+      }
+    end
+  end
+end
+
+class Optimism
+  def self.parser
+    ->{|o,data,blk| Parser.parse!(o, data, &blk)}
+  end
+end

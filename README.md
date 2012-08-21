@@ -1,11 +1,13 @@
 # Optimism, a configuration gem for Ruby [![Build Status](https://secure.travis-ci.org/GutenYe/optimism.png)](http://travis-ci.org/GutenYe/optimism)
 
-| Homepage:      | https://github.com/GutenYe/optimism
-|----------------|--------------------------------------
-| Author:	       | Guten 
-| License:       | MIT-LICENSE 
-| Documentation: | http://rubydoc.info/gems/optimism/frames
-| Issue Tracker: | https://github.com/GutenYe/optimism/issues
+|                |                                             |
+|----------------|---------------------------------------------|
+| Homepage:      | https://github.com/GutenYe/optimism         |
+| Author:	       | Guten                                       |
+| License:       | MIT-LICENSE                                 |
+| Documentation: | http://rubydoc.info/gems/optimism/frames    |
+| Issue Tracker: | https://github.com/GutenYe/optimism/issues  |
+| Platforms:     | Ruby 1.9.3, JRuby, Rubinius                 |
 
 Features
 --------
@@ -197,17 +199,12 @@ Resources
 * [simpleconfig](https://github.com/lukeredpath/simpleconfig) make application-wide configuration settings easy to set and access in an object-oriented fashion
 * [configuration](https://github.com/ahoward/configuration) pure ruby scoped configuration files 
 
-Requirements
-------------
-
-* ruby 1.9.3
-
 Copyright
 ---------
 
 (MIT-LICENSE)
 
-Copyright (c) 2011 Guten
+Copyright (c) 2011-2012 Guten
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

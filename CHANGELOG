@@ -1,0 +1,15 @@
+*Optimism (3.3.0)*
+
+	* remove 'Optimism.get', 'Optimsm.convert', 'Optimims.[]', 'Optimism#_get', 'Optimism#_child'
+	* remove 'hike' dependency
+	* add 'Optimism.require!', 'Optimism#_has_key2?'
+	* 'Optimism#initialize'  
+			- add (hash/optimism, o)
+			- rename ':only_symbol_key' option to ':symbolize_key'
+			- add ':parser' option
+	* 'Optimism.require'
+			- support yaml file (.yml)
+			- rename ':mixin' option to ':merge'
+			- remove ':ignore_syntax_error', ':raise_missing_file' option
+	* 'Optimism#_walk' return nil instead of raising error
+	* 'Optimism#_store2' remove ':namespace' option
