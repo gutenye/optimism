@@ -1,13 +1,13 @@
-require "bundler/setup"
-require "stringio"
 require "pd"
 require "optimism"
 
 $spec_dir = File.expand_path("..", __FILE__)
-$spec_data = File.expand_path("../data", __FILE__)
+$spec_data = File.join($spec_dir, "data")
+$spec_tmp = File.join($spec_dir, "tmp")
 
 RSpec.configure do |config|
   def capture(stream)
+    reqire "stringio"
     begin
       stream = stream.to_s
       eval "$#{stream} = StringIO.new"
@@ -23,30 +23,22 @@ RSpec.configure do |config|
   alias :silence :capture
 end
 
-module Kernel 
-private
+module RSpec
+  module Core
+    module DSL
+      def xdescribe(*args, &blk)
+        describe *args do
+          pending 
+        end
+      end
 
-  def xdescribe(*args, &blk)
-    describe *args do
-      pending "xxxxxxxxx"
-    end
-  end
-
-  def xcontext(*args, &blk)
-    context *args do
-      pending "xxxxxxxxx"
-    end
-  end
-
-  def xit(*args, &blk)
-    it *args do
-      pending "xxxxxxxx"
+      alias xcontext xdescribe
     end
   end
 end
 
-class Optimism
-  class << self
-    public :[]
-  end
+def public_all_methods(*klasses)
+  klasses.each {|klass|
+    klass.class_eval {public *(self.protected_instance_methods(false) + self.private_instance_methods(false))}
+  }
 end

@@ -1,10 +1,9 @@
 require "spec_helper"
 
-module Optimism::Require
-  public :find_file
-end
+Require = Optimism::Require
+public_all_methods Require
 
-describe Optimism::Require do
+describe Require do
   describe ".find_file" do
     before(:all) {
       @rc_path = File.join($spec_dir, "data/rc.rb")
@@ -112,7 +111,7 @@ describe Optimism::Require do
 
   describe ".require_input" do
     it "works" do
-      module Optimism::Require
+      module Require
         def gets() "guten\n" end
       end
       o = Optimism.require_input("what's your name?", "my.name")
@@ -120,7 +119,7 @@ describe Optimism::Require do
     end
 
     it "with :default option" do
-      module Optimism::Require
+      module Require
         def gets() "\n" end
       end
       o = Optimism.require_input("what's your name?", "my.name", default: "foo")
@@ -128,7 +127,7 @@ describe Optimism::Require do
     end
 
     it "call with block" do
-      module Optimism::Require
+      module Require
         def gets() "1\n" end
       end
       o = Optimism.require_input("how old are you?", "age") { |age| age.to_i }
@@ -138,7 +137,7 @@ describe Optimism::Require do
 
   describe "#_require_input" do
     it "works" do
-      module Optimism::Require
+      module Require
         def gets() "fine\n" end
       end
 
@@ -149,7 +148,7 @@ describe Optimism::Require do
     end
 
     it "with default value" do
-      module Optimism::Require
+      module Require
         def gets() "\n" end
       end
 

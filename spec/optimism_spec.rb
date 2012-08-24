@@ -1,501 +1,417 @@
 require "spec_helper"
-$:.unshift $spec_dir
 
-class Optimism
-  public :_fix_lambda_values, :_walk, :_split
-end
-
-def build(hash)
-  o = Optimsm.new
-  o._data = hash
-  o
-end
+public_all_methods Optimism
 
 describe Optimism do
-  # first
-  describe "#==" do
-    it "" do
-      a = build(a: 1)
-      b = build(a: 1)
-
-      a.should == b 
-    end
+  # helper method to build <#Optimism>.
+  def build(hash, o={})
+    o = Optimism.new(nil, o)
+    o._data = hash
+    o
   end
 
-  describe ".[]" do
-    it "simple hash data" do
-      Optimism({a: 1}).should == build(a: 1)
-    end
+  before :all do
+    @optimism = Optimism.new
+  end
 
-    it "complex hash data" do
-      Optimism({a: 1, b: {c: 1}}).should == build(a: 1, b: build(c: 1))
-    end
+  describe "#==" do
+    it do
+      a = build(a: 1, b: build(c: 2))
+      b = build(a: 1, b: build(c: 2))
+      c = build(a: 1, b: build(c: 3))
 
-    it "simple optimism data " do
-      o = Optimism(a: 1)
-      Optimism(o).should == o
-    end
-
-    it "complex optimism data" do
-      data = { a: 1, b: build(c: 2), d: {e: 3}
-      right = build(a: 1, b: build(c: 2), d: build(e: 3)))
-
-      Optimism(data).should == right
+      expect(a).to eq(b)
+      expect(a).not_to eq(c)
     end
   end
 
 	describe "#inspect" do
-		it "works" do
-      o = Optimism({a: 1, c: {d: {e: 3}}})
-			expect = <<-EOF.rstrip
-<#Optimism:_
+		it do
+      a = build({a: 1, c: build({d: build({e: 3}, name: "d")}, name: "c")})
+			r = <<-EOF.rstrip
+<#Optimism:
   :a => 1
   :c => <#Optimism:c
     :d => <#Optimism:d
       :e => 3>>>
-EOF
+    EOF
 
-			o.inspect.should == expect
+			expect(a.inspect).to eq(r)
 		end
 	end
 
-  describe "#_root" do
-    it "works" do
-      o = Optimism({a: {b: {c: 1}}})
-      o.a.b._root.should == o
+  describe "#_convert_hash" do
+    before :all do
+      @o = Optimism.new
+    end
+
+    it do
+      a = {a: 1, b: {c: {d: 2}}}
+      ret = @optimism._convert_hash(a)
+
+      expect(ret[:b]._name).to eq("b")
+      expect(ret[:b].c._parent._name).to eq("b")
+    end
+
+    it "(symbolize_key: true)"do
+      a = {a: 1, "b" => 2}
+      b = build(a: 1, b: 2)
+
+			expect(@optimism._convert_hash(a, symbolize_key: true)).to eq(b)
+    end
+
+    it "do a deep convert (symbolize_key: true)" do
+      a = {a: 1, b: {"c" => 2}}
+      b = build(a: 1, b: build(c: 2))
+      expect(@optimism._convert_hash(a, symbolize_key: true)).to eq(b)
+    end
+
+    it "(symbolize_key: false)" do
+      a = {a: 1, b: {"c" => 2}}
+      b = build(a: 1, b: build("c" => 2))
+			expect(@optimism._convert_hash(a, symbolize_key: false)).to eq(b)
     end
   end
 
-	describe ".get" do
-		it "gets data from Hash" do
-      data = {a: 1}
-			Optimism.get(data).should == {a: 1}
-		end
-		it "gets data from Optimism" do
-			o = lptimism.new
-			o._data = {a: 1}
-			Optimism.get(o).should == {a: 1}
-		end
-	end
+  describe "#initialize" do # 1
+    it "(hash)" do
+      a = Optimism.new(a: 1)
+      r = build(a: 1)
 
-  describe "#_fix_lambda_values" do
-    it "works" do
-      rc = Optimism <<-EOF
-        a = lambda { 1 }.tap{|s| s.instance_variable_set(:@_optimism, true)}
-        my:
-          a = lambda { 2 }.tap{|s| s.instance_variable_set(:@_optimism, true)}
-      EOF
-      rc.should == Optimism({a: 1, my: {a: 2}})
+      expect(a).to eq(r)
+    end
+
+    it "(Optimism)" do
+      a = Optimism.new(build(a: 1))
+      r = build(a: 1)
+
+      expect(a).to eq(r)
+    end
+
+    it "{ block }" do
+      Optimism.any_instance.should_receive(:_parse!)
+      Optimism.new do "guten" end
+    end
+
+    it "(str)" do
+      Optimism.any_instance.should_receive(:_parse!).with("guten")
+      Optimism.new("guten")
     end
   end
 
-  context "ruby-syntax" do
-    it "works" do
-      rc = Optimism do |c|
-        c.a = 1
-        b.c do |c|
-          c.d = _.a
-        end
-      end
-      rc.should == Optimism({b: {c: {d: 1}}, a: 1})
-    end
-  end
-
-  context "string-syntax" do
-    it "with simple example"  do
-      rc = Optimism <<-EOF
-a = 1
-      EOF
-      rc.should == Optimism({a: 1})
-    end
-
-    it "with complex example" do
-      rc = Optimism <<-EOF
-a = 1
-b.c:
-  d = _.a
-      EOF
-      rc.should == Optimism({b: {c: {d: 1}}, a: 1})
-    end
+  describe "#_data" do 
   end
 
 	context "access" do
-		before :all do
-			@rc = Optimism({a: 1})
-			@rc._data = {a: 1} 
+		before :each do
+			@a = Optimism({a: 1, b: {c: 2}})
 		end
 
-		it "#name" do
-			@rc.a.should == 1
-		end
+    describe "#<name>" do
+      it do
+        expect(@a.a).to eq(1)
+        expect(@a.b.c).to eq(2)
+      end
 
-		it "#name?" do
-			@rc.a?.should be_true
-		end
-
-    it "#name? => false if not key" do
-      @rc.dont_exist?.should be_false
+      it "-> <#Optimism> node when key doesn't exist" do
+        expect(@a.z).to be_an_instance_of(Optimism)
+      end
     end
 
-		it "#[] with symbol key" do
-			@rc[:a].should == 1
-			@rc[:b].should == nil
-		end
+    describe "#<name>?" do
+      it do
+        expect(@a.a?).to be_true
+        expect(@a.z?).to be_false
+      end
+    end
 
-    it "return <#Optimism> if key doesn't exist" do
-      @rc.i.dont.exists.should be_an_instance_of Optimism
+    describe "#[]" do
+      it do
+        @a = Optimism({a: 1, "b" => 2})
+
+        expect(@a[:a]).to eq(1)
+        expect(@a["a"]).to eq(1)
+
+        expect(@a[:b]).to eq(2)
+        expect(@a["b"]).to eq(2)
+
+        expect(@a[:z]).to be_nil
+        expect(@a["z"]).to be_nil
+      end
+
+      it "(symbolize_key: false)" do
+        @a = Optimism({a: 1, "b" => 2}, symbolize_key: false)
+
+        expect(@a[:a]).to eq(1)
+        expect(@a["a"]).to be_nil
+
+
+        expect(@a[:b]).to be_nil
+        expect(@a["b"]).to eq(2)
+
+        expect(@a[:z]).to be_nil
+        expect(@a["z"]).to be_nil
+      end
     end
 	end
 
 	context "assignment" do
 		before :each do
-			@rc = Optimism.new
+			@a = Optimism()
 		end
 
-		it "#name= value" do
-			@rc.a = 1
-			@rc[:a].should == 1
-		end
+    describe "#<name>=" do
+      it do
+        @a.a = 1
+        expect(@a.a).to eq(1)
+      end
 
-		it "#[:key]= value" do
-			@rc[:a] = 2
-			@rc.a.should == 2
-		end
+      it "(complex)" do
+        @a.a.b = 1
+        expect(@a.a.b).to eq(1)
+      end
+    end
 
-		it '#["key"]= value' do
-      @rc[:a] = 4
-      @rc.a.should == 4
-		end
+    describe "#[]=" do
+      it do
+        @a[:a] = 2
+        expect(@a[:a]).to eq(2)
+        expect(@a["a"]).to eq(2)
+
+        @a["a"] = 3
+        expect(@a[:a]).to eq(3)
+        expect(@a["a"]).to eq(3)
+      end
+
+
+      it "(symbolize_key: false)" do
+        @a = Optimism.new(nil, symbolize_key: false)
+
+        @a[:a] = 2
+        expect(@a[:a]).to eq(2)
+        expect(@a["a"]).to be_nil
+
+        @a["a"] = 3
+        expect(@a[:a]).to eq(2)
+        expect(@a["a"]).to eq(3)
+      end
+    end
 	end
 
-  context "with option only_symbol_key" do
-    it "default is false" do
-      o = Optimism.new
-      o[:a] = 1
-
-      o[:a].should == 1
-      o["a"].should == 1
-
-      o["a"] = 2
-      o["a"].should == 2
-      o[:a].should == 2
+	context "path" do
+    before :all do
+      @a = Optimism({b: {c: {d: 2}}})
     end
 
-    it "if true" do
-      o = Optimism.new(nil, only_symbol_key: true)
-      o[:a] = 1
-
-      o[:a].should == 1
-      o["a"].should_not == 1
-
-      o["a"] = 2
-      o["a"].should == 2
-      o[:a].should_not == 2
-    end
-
-  end
-
-	context "namespace" do
-		it "supports basic namespace with ruby-syntax" do
-			rc = Optimism do |c|
-				c.a.b.c = 1
-			end
-			rc.should == Optimism({a: {b: {c:1}}})
-		end
-
-    it "supports basic namespace with string-syntax" do
-      rc = Optimism <<-EOF
-a.b.c = 1
-      EOF
-      rc.should == Optimism({a: {b: {c: 1}}})
-    end
-
-		it "supports basic2 namespace with ruby-syntax" do
-			rc = Optimism do |c|
-				a.b do |c|
-          c.c = 1
-        end
-			end
-			rc.should == Optimism({a: {b: {c:1}}})
-		end
-
-    it "supports basic2 namespace with string-syntax" do
-      rc = Optimism <<-EOF
-a.b:
-  c = 1
-      EOF
-      rc.should == Optimism({a: {b: {c: 1}}})
-    end
-
-			it "supports complex namespace with ruby-syntax" do
-				rc = Optimism do |c|
-					c.age = 1
-
-					my do |c|
-						c.age = 2
-
-						friend do |c|
-							c.age = 3
-						end
-					end
-				end
-
-				rc.should == Optimism({age: 1, my: {age: 2, friend: {age: 3}}})
-			end
-
-			it "supports complex namespace with string-syntax" do
-				rc = Optimism <<-EOF
-age = 1
-
-my:
-  age = 2
-
-  friend:
-    age = 3
-        EOF
-
-				rc.should == Optimism({age: 1, my: {age: 2, friend: {age: 3}}})
+    describe "#_" do
+      it do
+        expect(@a.b._).to eq(@a.b)
       end
-	end
+    end
 
-	context "variable & path" do
-		it "supports basic varaible with ruby-syntax" do
-			rc = Optimism do |c|
-				c.age = 1
-        age.should == 1
-			end
-		end
-
-		it "supports basic varaible with string-syntax" do
-			rc = Optimism <<-EOF
-				age = 1
-        age.should == 1
-      EOF
-		end
-
-		it "support root path with ruby-syntax" do
-      rc = Optimism do |c|
-        c.age = 1
-        c.myage = _.age
+    describe "#_parent" do
+      it do
+        expect(@a.b.c._parent).to eq(@a.b)
       end
-      rc.myage.should == 1
     end
 
-		it "support root path with string-syntax" do
-      rc = Optimism <<-EOF
-        age = 1
-        myage = _.age
-      EOF
-      rc.myage.should == 1
-    end
-
-
-		it "support relative path with ruby-syntax" do
-      rc = Optimism do |c|
-        c.age = 1
-        my do |c|
-          c.age = __.age
-        end
+    describe "#_root" do
+      it do
+        expect(@a.b.c._root).to eq(@a)
       end
-      rc.my.age.should == 1
     end
 
-		it "supports relative path with string-syntax" do
-      rc = Optimism <<-EOF
-        age = 1
-        my:
-          age = __.age
-      EOF
-      rc.my.age.should == 1
+    describe "#__ (relative path)" do
+      it do
+        expect(@a.b.__).to eq(@a)
+      end
+
+      it "wrong path" do
+        expect(@a.___).to eq(nil)
+      end
     end
 
-    it "with complex example in ruby-synatx" do
-			rc = Optimism do |c|
-				c.age = 1
-
-				my do |c|
-					c.age = 2
-
-					friend do |c|
-						c.age = 3
-
-						age.should == 3
-						__.age.should == 2
-						___.age.should == 1
-						_.age.should == 1
-					end
-				end
-			end
-		end
-
-    it "with complex example in string-syntax" do
-      rc = Optimism <<-EOF
-        age = 1
-
-        my:
-          age = 2
-
-          friend:
-            age = 3
-            cur_age = age
-            root_age = _.age
-            rel1_age = __.age
-            rel2_age = ___.age
-      EOF
-      rc.my.friend.cur_age.should == 3
-      rc.my.friend.root_age.should == 1
-      rc.my.friend.rel1_age.should == 2
-      rc.my.friend.rel2_age.should == 1
+    describe "#_split_path" do
+      it do
+        expect(@optimism._split_path("foo")).to eq(["_", "foo"])
+        expect(@optimism._split_path("foo.bar.baz")).to eq(["foo.bar", "baz"])
+      end
     end
 
+    describe "#_walk_down" do
+      before :all do
+        @o = Optimism({a: {b: {c: {d: 1}}}})
+      end
+
+      it do
+        node = @o._walk_down("a.b")
+
+        expect(node._name).to eq("b")
+      end
+
+      it "-> nil if path is wrong" do 
+        node = @o._walk_down("a.z")
+
+        expect(node).to be_nil
+      end
+
+      it "(build: true)" do
+        o = Optimism.new
+        node = o._walk_down("a.b", build: true)
+
+        expect(o).to eq(Optimism(a: {b: Optimism.new}))
+      end
+    end
+
+    describe "#_walk_up" do
+      before :all do
+        @o = Optimism({a: {b: {c: {d: 1}}}})
+      end
+
+      it do
+        node = @o._walk_down("a.b.c")._walk_up("b.a")
+
+        expect(node._name).to eq("a")
+      end
+
+      it "(build: true)" do
+        o = Optimism.new
+        node = o._walk_up("b.a", :build => true)
+
+        expect(node).to eq(Optimism(a: {b: Optimism.new}))
+      end
+    end
+
+    describe "_walk" do
+      it do
+        o = Optimism({a: {b: {c: {d: 1}}}})
+        a = o._walk_down("a")
+        c = o._walk_down("a.b.c")
+
+        expect(a._walk("_")._name).to eq("a")
+        expect(a._walk("-_")._name).to eq("a")
+        expect(a._walk("b.c")._name).to eq("c")
+        expect(c._walk("-b.a")._name).to eq("a")
+      end
+    end
+
+    xdescribe "#_walk!.  DEAD LOOP" do
+      it do
+        o = Optimism.new
+        o._walk!("a.b", :build => true)
+        expect(o._root).to eq(Optimism(a: {b: Optimism.new}))
+
+        o = Optimism.new
+        o._walk!("-b.a", :build => true)
+        expect(o).to eq(Optimism(a: {b: Optimism.new}))
+      end
+    end
+
+    describe "#_has_key?" do
+      before :all do
+        @a = Optimism({a: {b: 1}})
+      end
+
+      it "(key)" do
+        @a._has_key?("a").should be_true
+        @a._has_key?(:a).should be_true
+      end
+
+      it "(path)" do
+        @a._has_key?("a.b").should be_true
+        @a._has_key?("a.z").should be_false
+      end
+
+      it "with {symbolize_key: false} option" do
+        a = Optimism({a: 1, "b" => 2}, symbolize_key: false)
+
+        a._has_key?(:a).should be_true
+        a._has_key?("a").should be_false
+
+        a._has_key?("b").should be_true
+        a._has_key?(:b).should be_false
+      end
+    end
+
+=begin
+
+    describe "#_fetch" do
+      before :each do
+        @a = Optimism({a: {b: {c: 1}}})
+      end
+
+      it "works" do
+        expect(@a._fetch("a.b.c")).to eq(1)
+      end
+
+      it "return default value when path doesn't exists" do
+        expect(@a._fetch("b.c.d",  2)).to eq(2)
+        expect(@a[:b][:c][:d]).to eq(2)
+      end
+    end
+
+    describe "#_store" do
+      before :each do
+        @a = Optimism.new
+      end
+
+      it "works with default :build is true" do
+        @a._store 'a.b', 1
+        expect(@a).to eq(Optimism({a: {b: 1}}))
+      end
+
+      it "works with :build => false" do
+        expect{@a._store('a.b', 1, :build => false)}.to raise_error(Optimism::EPath)
+      end
+    end
+=end
   end
 
 	context "computed attribute" do
-		it "works with ruby-syntax" do
-			rc = Optimism do |c|
-				c.count = lambda{|n| n}
-				c.bar = proc{|n| n}
-			end
+		it do
+      a = Optimism(
+        count: lambda{|n| n},
+        bar: proc{|n| n}
+      )
 
-      rc.count(1).should == 1
-      rc.bar(1).should be_an_instance_of(Proc)
-		end
-
-    it "works with string-syntax" do
-      rc = Optimism <<-EOF
-        count = lambda{|n| n}
-        bar = proc{|n| n}
-      EOF
-
-      rc.count(1).should == 1
-      rc.bar(1).should be_an_instance_of(Proc)
-    end
-
-		it "not call with #[]" do
-			rc = Optimism.new do |c|
-				c.count = proc{ 1 }
-			end
-			rc[:count].should be_an_instance_of Proc
+      expect(a.count(1)).to eq(1)
+      expect(a.bar).to be_an_instance_of(Proc)
 		end
 	end
 
   context "semantic" do
-    it "works" do
-      rc = Optimism.new do |c|
-        c.is_started = yes
+    it do
+      a = Optimism do
+        _.is_ok = yes
       end
-      rc.is_started?.should be_true
+
+      expect(a.is_ok).to be_true
     end
   end
 
-	context "hash compatibility" do
-		it "works" do
-			rc = Optimism(a: 1)
-			rc._keys.should == [:a]
-		end
+  describe "#to_hash" do
+    it do
+      a = Optimism(a: 1)
+      b = {a: 1}
 
-		it "#_method? must comes before #method?" do
-			rc = Optimism.new
-			rc.i._empty?.should be_true
-			rc.i.empty?.should be_false
-		end
-	end
-
-  describe "#_to_hash" do
-    o = Optimism({a: {b: {c: 1}}})
-    o._to_hash.should == {a: Optimism({b: {c: 1}})}
-  end
-
-  describe "#_walk" do
-    it "down along the path" do
-      o = Optimism({a: {b: {c: 1}}})
-      node = o._walk('a.b')
-      node.should == Optimism({c: 1})
-    end
-
-    it "up along the path" do
-      o = Optimism({a: {b: {c: 1}}})
-      node = o._walk('a.b')
-      node2 = node._walk('-_.a')
-      node2.should == o
-    end
-
-    it "down along the path with :build" do
-      o = Optimism.new
-      lambda {node = o._walk('a.b')}.should raise_error(Optimism::EPath)
-      node = o._walk('a.b', :build => true)
-      o.should == Optimism(a: {b: Optimism.new})
-    end
-
-    it "up along the path with :build" do
-      o = Optimism.new
-      lambda {node = o._walk('-a.b')}.should raise_error(Optimism::EPath)
-      node = o._walk('-a.b', :build => true)
-      node.should == Optimism(a: {b: Optimism.new})
+      expect(a.to_hash).to eq(b)
     end
   end
 
-  describe "#_walk!" do
-    it "down along the path" do
-      o = Optimism.new
-      o._walk!('a.b', :build => true)
-      o._root.should == Optimism(a: {b: Optimism.new})
-    end
+  describe "#_<method> (hash method)" do
+    it "goto _data" do
+      o = Optimism(a: 1)
 
-    it "up along the path" do
-      o = Optimism.new
-      o._walk!('-a.b', :build => true)
-      o.should == Optimism(a: {b: Optimism.new})
+      o.stub(:_data){ double.tap{|x| x.should_receive(:foo?)} }
+      o._foo?()
+
+      o.stub(:_data){ double.tap{|x| x.should_receive(:foo)} }
+      o._foo()
     end
   end
 
-  describe "#_split" do
-    it "works" do
-      Optimism.new._split("foo").should == ["", :foo]
-      Optimism.new._split("foo.bar.baz").should == ["foo.bar", :baz]
-    end
-  end
 
-  describe "#_has_key2?" do
-    it "works" do
-      a = Optimism({foo: {bar: 1}})
-
-      a._has_key2?("foo").should be_true
-      a._has_key2?("foo.bar").should be_true
-      a._has_key2?("bar.baz").should be_false
-      a[:bar].should be_nil
-    end
-  end
-
-  describe "#_fetch2" do
-    before :each do
-			@o = Optimism({a: {b: {c: 1}}})
-    end
-
-		it "works" do
-      @o._fetch2("a.b.c").should == 1
-    end
-
-    it "return default value when path doesn't exists" do
-      @o._fetch2("b.c.d",  2).should == 2
-      @o[:b][:c][:d].should == 2
-    end
-  end
-
-  describe "#_store2" do
-    before :each do
-      @o = Optimism.new
-    end
-
-    it "works with default :build is true" do
-      @o._store2 'a.b', 1
-      @o.should == Optimism({a: {b: 1}})
-    end
-
-    it "works with :build => false" do
-      lambda {@o._store2('a.b', 1, :build => false)}.should raise_error(Optimism::EPath)
-    end
-  end
+=begin
 
   describe "#_repalce" do
     it "works" do
@@ -507,7 +423,7 @@ my:
     end
   end
 
-  describe "marshal" do
+  context "marshal" do
     it "works" do
       rc = Optimism({a: 1, b: {c: 2}})
       content = Marshal.dump(rc)
@@ -515,6 +431,7 @@ my:
       ret.should == rc
     end
   end
+
 
   describe "#_merge!" do
     it "works" do
@@ -580,26 +497,82 @@ my:
 
   describe "#_get" do
     before(:all) {
-      @o = Optimism do |c|
+      @a = Optimism do |c|
         c.a = 1
         c.b.c = 2
       end
     }
 
     it "works" do
-      @o._get("a").should == 1
+      @a._get("a").should == 1
     end
 
     it "support path" do
-      @o._get("b.c").should == 2
+      @a._get("b.c").should == 2
     end
 
     it "return nil if path is not exists" do
-      @o._get("c.d").should == nil
+      @a._get("c.d").should == nil
     end
 
     it "return nil if path is wrong" do
-      @o._get("a.b").should == nil
+      @a._get("a.b").should == nil
     end
   end
+
+
+  ## path
+  ##
+
+  describe "#_root" do
+    it "works" do
+      o = Optimism({a: {b: {c: 1}}})
+      o.a.b._root.should == o
+    end
+  end
+
+  describe "#initialize" do # 2
+    it "(x, default: 0)" do
+      o = Optimism.new({a: 1}, default: 0) 
+
+      expect(o[:a]).to eq(1)
+      expect(o[:b]).to eq(0)
+    end
+
+    it "(x, symbolize_key: true)" do
+      o = Optimism.new({a: 1, "b" => 2}, symbolize_key: true)
+
+      expect(o[:a]).to eq(1)
+      expect(o["a"]).to eq(1)
+
+      expect(o["b"]).to eq(2)
+      expect(o[:b]).to eq(2)
+
+      o[:c] = 3 
+      o["d"] = 4
+
+      expect(o[:c]).to eq(3)
+      expect(o["c"]).to eq(3)
+
+      expect(o["d"]).to eq(4)
+      expect(o[:d]).to eq(4)
+    end
+
+    it "(x, symbolize_key: false)" do
+      o = Optimism.new({a: 1, "b" => 2}, symbolize_key: false)
+      o[:a] = 1
+      o["a"] = 2
+
+      expect(o[:a]).to eq(1)
+      expect(o["a"]).to eq(2)
+    end
+
+    it %~(x, namespace: "a.b")~ do
+      o = Optimism.new({c: 1}, namespace: "a.b") 
+      r = Optimism.new({a: {b: {c: 1}}})
+
+      expect(o).to eq(r)
+    end
+  end
+=end
 end

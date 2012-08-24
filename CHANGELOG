@@ -1,10 +1,13 @@
 *Optimism (3.3.0)*
 
+	* add yaml support.
+
+	* change path. '_' is current path, '_r' is root path.
 	* remove 'Optimism.get', 'Optimsm.convert', 'Optimims.[]', 'Optimism#_get', 'Optimism#_child'
 	* remove 'hike' dependency
 	* add 'Optimism.require!', 'Optimism#_has_key2?'
 	* 'Optimism#initialize'  
-			- add (hash/optimism, o)
+			- add (hash/optimism, o) argument.
 			- rename ':only_symbol_key' option to ':symbolize_key'
 			- add ':parser' option
 	* 'Optimism.require'

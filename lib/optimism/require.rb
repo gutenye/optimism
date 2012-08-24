@@ -145,7 +145,7 @@ class Optimism
         path = opts[:case_sensive] ? path : path.downcase
         path = path.split(opts[:split]).join('.')
         value = blk ? blk.call(ENV[env]) : ENV[env]
-        o._store2(path, value)
+        o._store2 path, value
       }
 
       o._walk!('-'+opts[:namespace], :build => true) if opts[:namespace]
@@ -174,7 +174,7 @@ class Optimism
       value = value.empty? ? o[:default] : value
       value = blk ? blk.call(value) : value
       rc = Optimism.new
-      rc._store2 path, value, o
+      rc._store2 path, value
 
       rc._root
     end
@@ -203,14 +203,13 @@ class Optimism
         }
       end
 
-      raise MissingFile if path.nil? and opts[:raise] then
+      raise MissingFile if path.nil? and opts[:raise]
 
       path
     end
   end
 
   module RequireInstanceMethod
-
     # a shortcut for Require#require_input
     # @see Require#require_input
     # @see Optimism#_walk
@@ -223,11 +222,10 @@ class Optimism
     #  o._require_input("how old are you?", "my.age") # use a default value with 1
     #
     # @param [Hash] opts
-    # @option opts [Boolean] :build 
-    def _require_input(msg, key, opts={}, &blk)
-      opts[:default] ||= _get(key)
-      opts[:build] ||= false
-      self << Optimism.require_input(msg, key, opts, &blk)
+    # @option opts [Object] :default default value
+    def _require_input(msg, fullpath, opts={}, &blk)
+      opts[:default] ||= _fetch2(fullpath, nil)
+      self << Optimism.require_input(msg, fullpath, opts, &blk)
       self
     end
   end
