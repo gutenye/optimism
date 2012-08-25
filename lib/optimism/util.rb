@@ -76,6 +76,20 @@ class Optimism
         end
       end
 
+      # Slice a hash to include only the given keys. This is useful for
+      # limiting an options hash to valid keys before passing to a method:
+      #
+      # @example
+      #
+      #    a = {a: 1, b: 2, c: 3}
+      #    a.slaice(:a, :b)                -> {a: 1, b: 2}
+      def slice(hash, *keys)
+        keys = keys.map! { |key| hash.convert_key(key) } if hash.respond_to?(:convert_key)
+        h = hash.class.new
+        keys.each { |k| h[k] = hash[k] if hash.has_key?(k) }
+        h
+      end
+
       # different to File.join. 
       #
       # @example

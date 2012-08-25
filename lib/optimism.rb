@@ -44,6 +44,7 @@ class Optimism
   EParse        = Class.new Error
 
   BUILTIN_METHODS = [:p, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open, :send] # not :raise
+  UNDEF_METHODS = [:to_ary, :&, :_root=, :_=]
 
   class << self
     public *BUILTIN_METHODS 
@@ -78,31 +79,39 @@ class Optimism
   #   # root node
   #   Optimism.new()         # is {name: "", parent: nil}
   #
-  #   # sub ndoe
+  #   # sub node
   #   Optimism.new(nil, name: "b", parent: o) 
   #
+  #   # link sub node
+  #   a = Optimism.new()
+  #   b = Optimism.new()
+  #   a[:foo] = b            # set b._name and b._parent
+  #
   # @param [String,Hash,Optimism] content
-  # @param [Hash] options
-  # @option options [Object] :default (nil) default value for Hash
-  # @option options [String] :namespace
-  # @option options [Boolean] :symbolize_key (true)
-  def initialize(content=nil, options={}, &blk)
-    @options = {symbolize_key: true}.merge(options)
-    @_parser = Parser.parsers[options[:parser] || :default]
-    @_name = @options[:name] || ""
-    @_parent = @options[:parent]
+  # @param [Hash] opts
+  # @option opts [Object] :default (nil) default value for Hash
+  # @option opts [Boolean] :symbolize_key (true)
+  # @option opts [String] :namespace (nil)
+  # @option opts [String] :name ("") node name
+  # @option opts [Optimism] :parent (nil) parent node
+  # @option opts [Symbol] :parser (:default) parser to parse content and block. 
+  def initialize(content=nil, opts={}, &blk)
+    @opts = {symbolize_key: true}.merge(opts)
+    @_parser = Parser.parsers[opts[:parser] || :default]
+    @_name = @opts[:name] || ""
+    @_parent = @opts[:parent]
 
     case content
     when Hash
-      @_data = _convert_hash(content, @options)._d
+      @_data = _convert_hash(content, @opts)._d
     when Optimism
       @_data = content._d
     else
-      @_data = Hash.new(@options[:default])
+      @_data = Hash.new(@opts[:default])
       _parse! content, &blk if content or blk
     end
 
-    _walk("-#{@options[:namespace]}", :build => true) if @options[:namespace]
+    _walk_up(@opts[:namespace], :build => true, :reverse => true) if @opts[:namespace]
   end
 
   # Returns true if equal without compare node name.
@@ -121,7 +130,7 @@ class Optimism
   # @params [Hash,Optimism,String] other
   # @return [self]
   def _merge!(other)
-    other = Optimism.new(other)
+    other = Optimism.new(other, Util.slice(@opts, :default, :symbolize_key, :parser))
     
     other._each { |k, v|
       if Optimism === self[k] and Optimism === other[k] 
@@ -146,14 +155,25 @@ class Optimism
 
   alias + _merge
 
-  # duplicate
+  # shadow Duplicate
+  #
+  # @exmaple
+  # 
+  #  a = Optimism({a: {b: {c: 1}}})
+  #  b = a._walk_down("a")
+  #
+  #  b2 = b._dup
+  #  b2._parent = parent_node
+  #
+  #  b  -> {c: 1}
+  #  b2 -> {c: 1}
   #
   # @return [Optimism] new <#Optimism>
   def _dup
-    o = Optimism.new(@options)
+    o = Optimism.new(@opts)
     o._name = self._name
     o._data = _d.dup
-    o._data.each {|k,v| v._parent = o if Optimism===v}
+    o._data.each {|k,v| v.instance_variable_set(:@_parent, o) if Optimism === v}
 
     o
   end
@@ -163,14 +183,9 @@ class Optimism
   # @param [Optimism] obj
   # @return [Optimism] self
   def _replace(other)
-    # link
-    if self._parent then
-      self._parent[self._name] = _dup
-    end
+    raise ArgumentError, "need Optimism type -- #{other.class.inspect}" unless Optimism === other 
 
-    self._parent = other._parent
-    self._name = other._name
-    self._data = other._d
+    self._data = other._data
 
     self
   end
@@ -180,6 +195,13 @@ class Optimism
 
   # parent node
   attr_accessor :_parent 
+  def _parent=(parent)
+    @_parent = parent
+
+    if parent
+      parent._d[_name.to_sym] = self
+    end
+  end
 
   # root node
   attr_reader :_root
@@ -213,21 +235,106 @@ class Optimism
   #  o._walk("-b.a")                -> <#Optimism:a ..>
   #
   # @param [String] path
-  # @param [Hash] options
-  # @option options [Boolean] (false) :build build the path if path doesn't exists.
+  # @param [Hash] opts
+  # @option opts [Boolean] :build (nil) build the path if path doesn't exists.
+  # @option opts [Boolean] :reverse (nil) reverse the path
   # @return [Optimism,nil] the result node.
-  def _walk(path, options={})
+  def _walk(path, opts={})
     return self if %w[_ -_].include?(path)
 
-    path =~ /^-/ ? _walk_up(path[1..-1], options) : _walk_down(path, options)
+    path =~ /^-/ ? _walk_up(path[1..-1], opts) : _walk_down(path, opts)
+  end
+
+  # @see _walk
+  def _walk_down(path, opts={})
+    node = self
+    nodes = path.split(".")
+    nodes.reverse! if opts[:reverse]
+
+    nodes.each { |name|
+      name = name.to_sym
+      if node._has_key?(name) and Optimism === node[name]
+        node = node[name]
+      elsif !node._has_key?(name) and opts[:build]
+        node = node._create_node(name)
+      else
+        return nil
+      end
+    }
+
+    node
+  end
+
+  # @see _walk
+  #
+  def _walk_up(path, opts={})
+    node = self
+    nodes = path.split(".")
+    nodes.reverse! if opts[:reverse]
+
+    nodes.each { |name|
+      if node._parent and node._parent._name == name
+          node = node._parent
+      elsif !node._parent and opts[:build]
+        options = Util.slice(@opts, :default, :symbolize_key, :parser)
+        prev_node = Optimism.new(nil, options)
+        prev_node[name.to_sym] = node # link the node.
+        node = prev_node
+      else
+        return nil
+      end
+    }
+    node
+  end
+
+  # @raise EPath
+  #
+  # @see _walk
+  def _walk_down!(path, opts={})
+    double = _dup
+    double._parent = self._parent
+
+    node = double._walk_down(path, opts)
+
+    if node
+      self._name = node._name
+      self._parent = node._parent
+      self._data = node._data
+
+      self
+    else
+      raise EPath, "wrong path -- #{path.inspect}"
+    end
+  end
+
+  # @raise EPath
+  #
+  # @see _walk
+  def _walk_up!(path, opts={})
+    double = _dup
+    double._parent = self._parent
+
+    node = double._walk_up(path, opts)
+
+    if node
+      self._name = node._name
+      self._parent = node._parent
+      self._data = node._data
+
+      self
+    else
+      raise EPath, "wrong path -- #{path.inspect}"
+    end
   end
 
   # walk along the path. IN PLACE
   # @see _walk
   #
   # @return [Optimism] self
-  def _walk!(path, options={})
-    _replace _walk(path, options)
+  def _walk!(path, opts={})
+    return self if %w[_ -_].include?(path)
+
+    path =~ /^-/ ? _walk_up!(path[1..-1], opts) : _walk_down!(path, opts)
   end
 
   # support path
@@ -264,7 +371,7 @@ class Optimism
   def []=(key, value)
     # link node if value is <#Optimism>
     if Optimism === value
-      value._parent = self 
+      value.instance_variable_set(:@_parent, self)
       value._name = key.to_sym
     end
 
@@ -273,7 +380,10 @@ class Optimism
 
   # fetch with path support.
   #
+  # @overload _fetch(key, [default])
+  #   @param [String, Symbol] key
   # @overload _fetch(path, [default])
+  #   @param [String] path
   #
   # @example
   #
@@ -299,11 +409,17 @@ class Optimism
       path, default = args
     end
 
-    base, key = _split_path(path)
+    case path
+    when Symbol
+      base, key = "_", path
+    else
+      base, key = _split_path(path.to_s)
+    end
+
     node = _walk(base)
 
-    if node & node._has_key?(key) then
-      return node._fetch(key)
+    if node && node._has_key?(key) then
+      return node[key]
     else
       if raise_error then
         raise KeyError, "key not found -- #{path.inspect}"
@@ -315,6 +431,11 @@ class Optimism
 
   # store with path support.
   #
+  # @overload _store(key, value)
+  #   @param [Symbol, String] key
+  # @overload _store(path, value)
+  #   @param [String] path
+  #
   # @exampe
   #
   #  o = Optimism.new
@@ -323,12 +444,41 @@ class Optimism
   # @param [Hash] o
   # @return [Object] value
   def _store(path, value)
-    path, key = _split_path(path)
+    case path
+    when Symbol
+      base, key = "_", path
+    else
+      base, key = _split_path(path.to_s)
+    end
 
-    node = _walk(path, :build => true)
+    node = _walk(base, :build => true)
     node[key] = value
 
     value
+  end
+
+  # Delete an item.
+  #
+  # @overload _delete(key)
+  #   @param [String, Symbol] key
+  # @overload _delete(path)
+  #   @param [String] path
+  #
+  def _delete(path, &blk)
+    case path
+    when Symbol
+      base, key = "_", path
+    else
+      base, key = _split_path(path.to_s)
+    end
+
+    node = _walk(base)
+
+    if node
+      node._d.delete(_convert_key(key), &blk)
+    else
+      blk ? blk.call : nil
+    end
   end
 
   def _parse!(content=nil, &blk)
@@ -355,6 +505,7 @@ class Optimism
   end
 
   alias to_s inspect
+  alias to_str to_s
 
   def to_hash
     _data
@@ -371,7 +522,7 @@ class Optimism
   #   .a.b.c
   #
   def method_missing(name, *args, &blk)
-    return super if [:to_ary].include?(name)
+    return super if UNDEF_METHODS.include?(name)
 
     # relative path: __
     if name =~ /^__+$/
@@ -419,46 +570,53 @@ class Optimism
     #   a = 2
     # EOF
     else
-      next_o = Optimism.new(nil, default: @options[:default])
-      self[name] = next_o # link the node
-      content = args[0]
-      next_o._parse! content, &blk
-      return next_o
+      return _create_node(name, args[0], &blk)
     end
   end
 
   def respond_to_missing?(name, include_private=false)
-    return super if [:to_ary].include?(name)
+    return super if UNDEF_METHODS.include?(name)
     true
+  end
+
+  # Create a new subnode and return it.
+  # the subnode is link to it's parent.
+  # @protected
+  #
+  def _create_node(name, content=nil, opts={}, &blk)
+    options = Util.slice(@opts, :default, :symbolize_key, :parser).merge(opts)
+    next_o = Optimism.new(content, options, &blk)
+    self[name.to_sym] = next_o # link the node
+    return next_o
   end
 
 protected
 
-    # deep convert Hash to optimism. 
-    # I'm rescursive.
-    # @protected
-    # 
-    # @overload convert_hash(hash) 
-    #
-    # @example
-    #
-    #   convert_hash({a: {b: 1})     -> {:a => <#Optimism :b => 1>}
-    #
-    # @param [Hash] hash
-    # @option options [Hash] :symbolize_key (nil)
-    # @return [Hash]
-    def _convert_hash(hash, options={})
-      o = Optimism.new(nil, options)
+  # deep convert Hash to optimism. 
+  # I'm rescursive.
+  # @protected
+  # 
+  # @overload convert_hash(hash) 
+  #
+  # @example
+  #
+  #   convert_hash({a: {b: 1})     -> {:a => <#Optimism :b => 1>}
+  #
+  # @param [Hash] hash
+  # @option opts [Hash] :symbolize_key (nil)
+  # @return [Hash]
+  def _convert_hash(hash, opts={})
+    o = Optimism.new(nil, opts)
 
-      hash.each { |k, v|
-        v = _convert_hash(v, options.merge(name: k.to_s, parent: o)) if Hash === v
-        k = (k.to_sym rescue k) || k if options[:symbolize_key]
+    hash.each { |k, v|
+      v = _convert_hash(v, opts.merge(name: k.to_s, parent: o)) if Hash === v
+      k = (k.to_sym rescue k) || k if opts[:symbolize_key]
 
-        o._d[k] = v
-      }
+      o._d[k] = v
+    }
 
-      o
-    end
+    o
+  end
 
   # Deep destructively convert all keys to symbols, as long as they respond
   # to +to_sym+. Same as +symbolize_keys+, but modifies +self+.
@@ -475,66 +633,11 @@ protected
   end
 
   def _convert_key(key)
-    if @options[:symbolize_key] and String === key
+    if @opts[:symbolize_key] and String === key
       key.to_sym 
     else
       key
     end
-  end
-
-  # @see _walk
-  def _walk_down(path, options={})
-    node = self
-    nodes = path.split(".")
-    nodes.each { |name|
-      name = name.to_sym
-      if node._has_key?(name)
-        if Optimism === node[name]
-          node = node[name]
-        else 
-          return nil
-        end
-      else
-        if options[:build]
-          new_node = Optimism.new(nil, default: @options[:default])
-          node[name] = new_node # link the node.
-          node = new_node
-        else
-          return nil
-        end
-      end
-
-    }
-    node
-  end
-
-  # @see _walk
-  #
-  def _walk_up(path, options={})
-    node = self
-    nodes = path.split(".")
-    nodes.each { |name|
-      if node._parent and node._parent._name == name
-          node = node._parent
-      elsif !node._parent and options[:build]
-        new_node = Optimism.new(nil, default: @options[:default])
-        new_node[name.to_sym] = node # link the node.
-        node = new_node
-      else
-        return nil
-      end
-    }
-    node
-  end
-
-  # @see _walk
-  def _walk_down!(path, options={})
-    _replace _walk_down(path, options)
-  end
-
-  # @see _walk
-  def _walk_up!(path, options={})
-    _replace _walk_up(path, options)
   end
 
   # split a path into path and key.
@@ -543,7 +646,7 @@ protected
   # "foo" => [ "_", "foo"]
   #
   # @return [Array<string>] [base_path, key]
-  def _split_path(path)
+  def _split_path(path, opts={})
     paths = path.split('.')
 
     if paths.size == 1

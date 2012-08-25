@@ -11,7 +11,7 @@ describe Optimism do
   end
 
   before :all do
-    @optimism = Optimism.new
+    @aptimism = Optimism.new
   end
 
   describe "#==" do
@@ -42,12 +42,12 @@ describe Optimism do
 
   describe "#_convert_hash" do
     before :all do
-      @o = Optimism.new
+      @a = Optimism.new
     end
 
     it do
       a = {a: 1, b: {c: {d: 2}}}
-      ret = @optimism._convert_hash(a)
+      ret = @aptimism._convert_hash(a)
 
       expect(ret[:b]._name).to eq("b")
       expect(ret[:b].c._parent._name).to eq("b")
@@ -57,28 +57,34 @@ describe Optimism do
       a = {a: 1, "b" => 2}
       b = build(a: 1, b: 2)
 
-			expect(@optimism._convert_hash(a, symbolize_key: true)).to eq(b)
+			expect(@aptimism._convert_hash(a, symbolize_key: true)).to eq(b)
     end
 
     it "do a deep convert (symbolize_key: true)" do
       a = {a: 1, b: {"c" => 2}}
       b = build(a: 1, b: build(c: 2))
-      expect(@optimism._convert_hash(a, symbolize_key: true)).to eq(b)
+      expect(@aptimism._convert_hash(a, symbolize_key: true)).to eq(b)
     end
 
     it "(symbolize_key: false)" do
       a = {a: 1, b: {"c" => 2}}
       b = build(a: 1, b: build("c" => 2))
-			expect(@optimism._convert_hash(a, symbolize_key: false)).to eq(b)
+			expect(@aptimism._convert_hash(a, symbolize_key: false)).to eq(b)
     end
   end
 
-  describe "#initialize" do # 1
+  describe "#initialize" do
     it "(hash)" do
       a = Optimism.new(a: 1)
       r = build(a: 1)
 
       expect(a).to eq(r)
+    end
+
+    it "(hash, default: x)" do
+      a = Optimism.new({a: 1}, default: 2)
+
+      expect(a._data.default).to eq(2)
     end
 
     it "(Optimism)" do
@@ -99,7 +105,90 @@ describe Optimism do
     end
   end
 
-  describe "#_data" do 
+  describe "#_merge!" do
+    before :each do
+      @a = Optimism({a: 1, b: 2})
+    end
+
+    it "(hash)" do
+      @a._merge!({a: 3, c: 4})
+      r = Optimism({a: 3, b: 2, c: 4})
+
+      expect(@a).to eq(r)
+    end
+
+    it "(optimism)" do
+      @a._merge!(Optimism({a: 3, c: 4}))
+      r = Optimism({a: 3, b: 2, c: 4})
+
+      expect(@a).to eq(r)
+    end
+
+    xit "(string) NEED PARSER" do  
+      @a._merge!(<<-EOF)
+a = 3
+c = 4
+     EOF
+      r = Optimism({a: 3, b: 2, c: 4})
+
+      expect(@a).to eq(r)
+    end
+
+    it "is deep merge" do
+      a = Optimism({a: {b: 1, c: "foo"}, b: {c: "x"}})
+      b = Optimism({a: {b: 2, d: "bar"}})
+      r = Optimism({a: {b: 2, c: "foo", d: "bar"}, b: {c: "x"}})
+
+      a._merge! b
+      expect(a).to eq(r)
+    end
+  end
+
+  describe "#_merge" do
+    it do
+      o = Optimism({a: 1, b: 2})
+      ret = o._merge(Optimism({a: 3, c: 4}))
+      r = Optimism({a: 3, b: 2, c: 4})
+
+      expect(o).to eq(o)
+      expect(ret).to eq(r)
+    end
+  end
+
+  describe "#_repalce" do
+    it "root node" do
+      a = Optimism({a: 1})
+      b = Optimism({b: {c: 2}})
+      r = Optimism({c: 2})
+
+      a._replace(b.b)
+      expect(a).to eq(r)
+      expect(a._name).to eq("")
+      expect(a._parent).to be_nil
+    end
+
+    it "sub node" do
+      a = Optimism({a: {a1: 1}})
+      b = Optimism({b: 2})
+      r = Optimism({a: {b: 2}})
+
+      a.a._replace(b)
+      expect(a).to eq(r)
+      expect(a.a._name).to eq("a")
+      expect(a.a._parent).to eq(r)
+    end
+  end
+
+  describe "#_dup" do
+    it do
+      a = Optimism({a: 1})
+      b = a.dup
+      r = Optimism({a: 2})
+
+      b[:a] = 2
+      expect(a).to eq(a)
+      expect(b).to eq(r)
+    end
   end
 
 	context "access" do
@@ -183,6 +272,15 @@ describe Optimism do
         expect(@a["a"]).to eq(3)
       end
 
+      it "asign a node" do
+        a = Optimism({a: 1})
+        b = Optimism({b1: 2})
+        r = Optimism({a: 1, b: {b1: 2}})
+
+        a[:b] = b
+        expect(a).to eq(r)
+        expect(b._parent).to eq(r)
+      end
 
       it "(symbolize_key: false)" do
         @a = Optimism.new(nil, symbolize_key: false)
@@ -215,6 +313,17 @@ describe Optimism do
       end
     end
 
+    describe "#_parent=" do
+      it do
+        a = Optimism({a: {a1: 1}})
+        b = Optimism({b: {b1: 2}})
+        r = Optimism({a: {a1: 1, b: {b1: 2}}})
+
+        b.b._parent = a.a
+        expect(b.b._root).to eq(r)
+      end
+    end
+
     describe "#_root" do
       it do
         expect(@a.b.c._root).to eq(@a)
@@ -233,43 +342,58 @@ describe Optimism do
 
     describe "#_split_path" do
       it do
-        expect(@optimism._split_path("foo")).to eq(["_", "foo"])
-        expect(@optimism._split_path("foo.bar.baz")).to eq(["foo.bar", "baz"])
+        expect(@aptimism._split_path("foo")).to eq(["_", "foo"])
+        expect(@aptimism._split_path("foo.bar.baz")).to eq(["foo.bar", "baz"])
       end
     end
 
     describe "#_walk_down" do
       before :all do
-        @o = Optimism({a: {b: {c: {d: 1}}}})
+        @a = Optimism({a: {b: {c: {d: 1}}}})
       end
 
       it do
-        node = @o._walk_down("a.b")
+        node = @a._walk_down("a.b")
+
+        expect(node._name).to eq("b")
+      end
+
+      it "(reverse: true)" do
+        node = @a._walk_down("b.a", reverse: true)
 
         expect(node._name).to eq("b")
       end
 
       it "-> nil if path is wrong" do 
-        node = @o._walk_down("a.z")
+        node = @a._walk_down("a.z")
 
         expect(node).to be_nil
       end
 
       it "(build: true)" do
-        o = Optimism.new
-        node = o._walk_down("a.b", build: true)
+        a = Optimism.new
+        r = Optimism({a: {b: Optimism.new}})
+        node = a._walk_down("a.b", build: true)
 
-        expect(o).to eq(Optimism(a: {b: Optimism.new}))
+        expect(node).to eq(r.a.b)
+        expect(node._root).to eq(r)
       end
     end
 
     describe "#_walk_up" do
       before :all do
-        @o = Optimism({a: {b: {c: {d: 1}}}})
+        @a = Optimism({a: {b: {c: {d: 1}}}})
+        @a = @a._walk_down("a.b.c")
       end
 
       it do
-        node = @o._walk_down("a.b.c")._walk_up("b.a")
+        node = @a._walk_up("b.a")
+
+        expect(node._name).to eq("a")
+      end
+
+      it "(reverse: true)" do
+        node = @a._walk_up("a.b", reverse: true)
 
         expect(node._name).to eq("a")
       end
@@ -295,15 +419,69 @@ describe Optimism do
       end
     end
 
-    xdescribe "#_walk!.  DEAD LOOP" do
+    describe "#_walk_down!" do
       it do
-        o = Optimism.new
-        o._walk!("a.b", :build => true)
-        expect(o._root).to eq(Optimism(a: {b: Optimism.new}))
+        a = Optimism({a: {b: {c: 1}}})
+        r = Optimism({c: 1})
 
-        o = Optimism.new
-        o._walk!("-b.a", :build => true)
-        expect(o).to eq(Optimism(a: {b: Optimism.new}))
+        a._walk_down!("a.b")
+        expect(a).to eq(r)
+      end
+
+      it "(build: true)" do
+        a = Optimism.new
+        r = Optimism({a: {b: Optimism.new}})
+
+        a._walk_down!("a.b", build: true)
+        expect(a).to eq(r.a.b)
+        expect(a._root).to eq(r)
+      end
+
+
+      it "raise EPath when wrong path" do
+        a = Optimism.new
+
+        expect{a._walk_down!("a.b")}.to raise_error(Optimism::EPath)
+      end
+    end
+
+    describe "#_walk_up!" do
+      it do
+        a = Optimism({a: 1})
+        r = Optimism({b: {c: {a: 1}}})
+
+        a._walk_up!("c.b", :build => true)
+        expect(a).to eq(r)
+      end
+
+      it "raise EPath when wrong path" do
+        a = Optimism.new
+
+        expect{a._walk_up!("c.b")}.to raise_error(Optimism::EPath)
+      end
+    end
+
+    describe "#_walk!" do
+      before :each do
+        o = Optimism({a: {b: {c: {d: 1}}}})
+        @a = o._walk_down("a")
+        @c = o._walk_down("a.b.c")
+      end
+
+      it { @a._walk!("_");    expect(@a._name).to eq("a") }
+      it { @a._walk!("-_");   expect(@a._name).to eq("a") }
+      it { @a._walk!("b.c");  expect(@a._name).to eq("c") }
+      it { @c._walk!("-b.a"); expect(@c._name).to eq("a") }
+    end
+  end
+
+  context "hash method" do
+    describe "#to_hash" do
+      it do
+        a = Optimism(a: 1)
+        b = {a: 1}
+
+        expect(a.to_hash).to eq(b)
       end
     end
 
@@ -333,38 +511,121 @@ describe Optimism do
       end
     end
 
-=begin
-
     describe "#_fetch" do
       before :each do
-        @a = Optimism({a: {b: {c: 1}}})
+        @a = Optimism({a: 1, "b" => 2, c: {d: {e: 3, "f" => 4}}})
+        @b = Optimism({a: 1, "b" => 2, c: {d: {e: 3, "f" => 4}}}, symbolize_key: false)
       end
 
-      it "works" do
-        expect(@a._fetch("a.b.c")).to eq(1)
+      it "(key)" do
+        expect(@a._fetch(:a)).to eq(1)
+        expect(@a._fetch("a")).to eq(1)
+
+        expect(@a._fetch("b")).to eq(2)
+        expect(@a._fetch(:b)).to eq(2)
       end
 
-      it "return default value when path doesn't exists" do
-        expect(@a._fetch("b.c.d",  2)).to eq(2)
-        expect(@a[:b][:c][:d]).to eq(2)
+      it "(key) with (symbolize_key: false) options" do
+        expect(@b._fetch(:a)).to eq(1)
+        expect(@b._fetch("a", nil)).to be_nil
+
+        expect(@b._fetch("b")).to eq(2)
+        expect(@b._fetch(:b, nil)).to be_nil
+      end
+
+      it "(path)" do
+        expect(@a._fetch("c.d.e")).to eq(3)
+        expect(@a._fetch("c.d.f")).to eq(4)
+      end
+
+      it "(path, default=2)" do
+        expect(@a._fetch("z.a",  2)).to eq(2)
+      end
+
+      it "(path) raise error without default" do
+        expect{@a._fetch("z.a")}.to raise_error(KeyError)
       end
     end
 
     describe "#_store" do
       before :each do
         @a = Optimism.new
+        @b = Optimism.new(nil, symbolize_key: false)
       end
 
-      it "works with default :build is true" do
-        @a._store 'a.b', 1
-        expect(@a).to eq(Optimism({a: {b: 1}}))
+      it "(key)" do
+        @a._store(:a, 1)
+        expect(@a[:a]).to eq(1)
+
+        @a._store("a", 2)
+        expect(@a[:a]).to eq(2)
       end
 
-      it "works with :build => false" do
-        expect{@a._store('a.b', 1, :build => false)}.to raise_error(Optimism::EPath)
+      it "(key) with (symbolize_key: false)" do
+        @b._store(:a, 1)
+        @b._store("a", 2)
+
+        expect(@b[:a]).to eq(1)
+        expect(@b["a"]).to eq(2)
+      end
+
+      it "(path)" do
+        @a._store("a.b", 1)
+
+        expect(@a.a.b).to eq(1)
       end
     end
-=end
+
+    describe "#_delete" do
+      it "(key)" do
+        a = Optimism({a: 1, b: 2})
+        r = Optimism({b: 2})
+
+        expect(a._delete("a")).to eq(1)
+        expect(a).to eq(r)
+      end
+
+      it "(key) with (symbolize_key: false) options" do
+        a = Optimism({a: 1}, symbolize_key: false)
+
+        expect(a._delete("a")).to be_nil
+        expect(a._delete(:a)).to eq(1)
+      end
+
+      it "(key) when key not found" do
+        a = Optimism({a: 1})
+
+        expect(a._delete(:z)).to be_nil
+        expect(a._delete(:z){3}).to eq(3)
+      end
+
+      it "(path)" do
+        a = Optimism({a: {b: {c: 1, d: 2}}})
+        r = Optimism({a: {b: {d: 2}}})
+
+        expect(a._delete("a.b.c")).to eq(1)
+        expect(a).to eq(r)
+      end
+
+      it "(path) when path not found" do
+        a = Optimism({a: {b: 1}})
+
+        expect(a._delete("a.z.x")).to be_nil
+        expect(a._delete("a.z.x"){3}).to eq(3)
+      end
+    end
+
+    describe "#_<method>" do
+      it "goto _data" do
+        o = Optimism(a: 1)
+
+        o.stub(:_data){ double.tap{|x| x.should_receive(:foo?)} }
+        o._foo?()
+
+        o.stub(:_data){ double.tap{|x| x.should_receive(:foo)} }
+        o._foo()
+      end
+    end
   end
 
 	context "computed attribute" do
@@ -388,191 +649,4 @@ describe Optimism do
       expect(a.is_ok).to be_true
     end
   end
-
-  describe "#to_hash" do
-    it do
-      a = Optimism(a: 1)
-      b = {a: 1}
-
-      expect(a.to_hash).to eq(b)
-    end
-  end
-
-  describe "#_<method> (hash method)" do
-    it "goto _data" do
-      o = Optimism(a: 1)
-
-      o.stub(:_data){ double.tap{|x| x.should_receive(:foo?)} }
-      o._foo?()
-
-      o.stub(:_data){ double.tap{|x| x.should_receive(:foo)} }
-      o._foo()
-    end
-  end
-
-
-=begin
-
-  describe "#_repalce" do
-    it "works" do
-      a = Optimism({foo: {bar: 1}})
-      b = Optimism.new
-      b._replace a.foo
-      b.should == Optimism(bar: 1)
-      b._root.should == a
-    end
-  end
-
-  context "marshal" do
-    it "works" do
-      rc = Optimism({a: 1, b: {c: 2}})
-      content = Marshal.dump(rc)
-      ret = Marshal.load(content)
-      ret.should == rc
-    end
-  end
-
-
-  describe "#_merge!" do
-    it "works" do
-      o = Optimism.new
-
-      o.b._merge! a: 1
-      o.should == Optimism({b: {a: 1}})
-
-      o.b._merge! Optimism({a: 2})
-      o.should == Optimism({b: {a: 2}})
-    end
-
-    #
-    # o.
-    #   a.b = 1
-    #   a.c = "foo"
-    #   b.c = "x"
-    #
-    # o2
-    #   a.b = 2
-    #   a.d = "bar"
-    #
-    # o << o2
-    # #=>
-    #  o.a.b = 2
-    #  o.a.c = "foo"
-    #  o.a.d = "bar"
-    #  o.b.c = "x"
-    it "is deep merge" do
-      o = Optimism do
-        a.b = 1
-        a.c = "foo"
-        b.c = "x"
-      end
-
-      o2 = Optimism do
-        a.b = 2
-        a.d = "bar"
-      end
-
-      o._merge! o2
-      o.should == Optimism({a: {b: 2, c: "foo", d: "bar"}, b: {c: "x"}})
-    end
-
-    it "(string)" do  
-      o = Optimism.new
-      o._merge! <<-EOF
-        a = 1
-      EOF
-
-      o.should == Optimism({a: 1})
-    end
-  end
-
-  describe "#_merge" do
-    it "works" do
-      o = Optimism.new
-      new = o._merge a: 1
-      o.should == o
-      new.should == Optimism(a: 1)
-    end
-  end
-
-  describe "#_get" do
-    before(:all) {
-      @a = Optimism do |c|
-        c.a = 1
-        c.b.c = 2
-      end
-    }
-
-    it "works" do
-      @a._get("a").should == 1
-    end
-
-    it "support path" do
-      @a._get("b.c").should == 2
-    end
-
-    it "return nil if path is not exists" do
-      @a._get("c.d").should == nil
-    end
-
-    it "return nil if path is wrong" do
-      @a._get("a.b").should == nil
-    end
-  end
-
-
-  ## path
-  ##
-
-  describe "#_root" do
-    it "works" do
-      o = Optimism({a: {b: {c: 1}}})
-      o.a.b._root.should == o
-    end
-  end
-
-  describe "#initialize" do # 2
-    it "(x, default: 0)" do
-      o = Optimism.new({a: 1}, default: 0) 
-
-      expect(o[:a]).to eq(1)
-      expect(o[:b]).to eq(0)
-    end
-
-    it "(x, symbolize_key: true)" do
-      o = Optimism.new({a: 1, "b" => 2}, symbolize_key: true)
-
-      expect(o[:a]).to eq(1)
-      expect(o["a"]).to eq(1)
-
-      expect(o["b"]).to eq(2)
-      expect(o[:b]).to eq(2)
-
-      o[:c] = 3 
-      o["d"] = 4
-
-      expect(o[:c]).to eq(3)
-      expect(o["c"]).to eq(3)
-
-      expect(o["d"]).to eq(4)
-      expect(o[:d]).to eq(4)
-    end
-
-    it "(x, symbolize_key: false)" do
-      o = Optimism.new({a: 1, "b" => 2}, symbolize_key: false)
-      o[:a] = 1
-      o["a"] = 2
-
-      expect(o[:a]).to eq(1)
-      expect(o["a"]).to eq(2)
-    end
-
-    it %~(x, namespace: "a.b")~ do
-      o = Optimism.new({c: 1}, namespace: "a.b") 
-      r = Optimism.new({a: {b: {c: 1}}})
-
-      expect(o).to eq(r)
-    end
-  end
-=end
 end
