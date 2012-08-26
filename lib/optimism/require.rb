@@ -180,7 +180,7 @@ class Optimism
           path = file if File.exists?(file)
 
         # /absolute/path/to/rc
-        elsif File.absolute_path(name, ".") == name
+        elsif File.absolute_path(name, ".") == name # rbx need "."
           path = name if File.exists?(name)
 
         # name
