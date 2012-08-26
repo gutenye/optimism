@@ -114,7 +114,7 @@ class Optimism
 
             # statement
             if statement =~ /:\s*$/
-              blk.call [:block_start, statement.gsub(/\s*:\s*$/, ':')]
+              blk.call [:block_start, statement.gsub(/\s*:\s*$/, ':')]  # jruby need []
             else
               blk.call [:statement, statement]
             end
