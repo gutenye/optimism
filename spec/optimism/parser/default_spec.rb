@@ -1,10 +1,24 @@
 require "spec_helper"
 
+
+foo = <<EOF
+_.a = 1
+b.d do
+  _.c = 1
+  _.d = _.c
+  _.e = __.a
+end
+EOF
+
+f = Optimism.new
+f.instance_eval(foo)
+p :f, f
+
+
 Default = Optimism::Parser::Default
 StringBlock2RubyBlock = Default::StringBlock2RubyBlock
-CollectLocalVariables = Default::CollectLocalVariables
-Path2Lambda = Default::Path2Lambda
-public_all_methods Default, StringBlock2RubyBlock, CollectLocalVariables, Path2Lambda
+LocalVariable2Method  = Default::LocalVariable2Method
+public_all_methods Default, StringBlock2RubyBlock
 
 describe StringBlock2RubyBlock do
     # simple
@@ -24,9 +38,9 @@ a:
     ]
 
     @content_evaluate = <<-EOF
-a <<-OPTIMISM_EOF0
+a do
   b = 1
-OPTIMISM_EOF0\n
+end\n
   EOF
   }
     # complex
@@ -64,13 +78,13 @@ g = 1
 
   @content1_evaluate = <<-EOF
 a = 1
-b <<-OPTIMISM_EOF0
+b do
   c = {d: 1}
   d = 1
-  e <<-OPTIMISM_EOF1
+  e do
     f.h = 1
-  OPTIMISM_EOF1
-OPTIMISM_EOF0
+  end
+end
 g = 1\n
   EOF
   }
@@ -130,9 +144,9 @@ a:
 	b 1
 EOF
 			r = <<EOF
-a <<-OPTIMISM_EOF0
+a do
   b 1
-OPTIMISM_EOF0\n
+end\n
 EOF
       ret = StringBlock2RubyBlock.new(content).evaluate
 
@@ -146,9 +160,9 @@ a:
 EOF
 
 			r = <<EOF
-a <<-OPTIMISM_EOF0
+a do
   b 1
-OPTIMISM_EOF0\n
+end\n
 EOF
 
       ret = StringBlock2RubyBlock.new(content).evaluate
@@ -158,206 +172,112 @@ EOF
 	end
 end
 
-describe CollectLocalVariables do
-  before(:all) {
-    @content=<<-EOF
+describe LocalVariable2Method do 
+  it do
+    content = <<-EOF
 a = 1
-my.name <<-OPTIMISM_EOF0
-  c = 1
-  e.f <<-OPTIMISM_EOF1
-    d = 2
-  OPTIMISM_EOF1
-OPTIMISM_EOF0
-b = 2
-    EOF
-  @content_clean=<<-EOF
-a = 1
-b = 2
-    EOF
+a.b = 2
+_.a = 3
 
-    @variables = [:a, :b]
-  }
+b do
+  c = 2
+  d = _.c
+  _.c = 3
 
-  describe "#remove_block_strint" do
-    it "" do
-      ret = CollectLocalVariables.new(@content).remove_block_string(@content)
-      expect(ret).to eq(@content_clean)
-    end
-
-    it "works with \A" do
-      content=<<-EOF
-a.b <<-OPTIMISM_EOF0
-  c = 1
-OPTIMISM_EOF0
-      EOF
-      r="\n"
-      ret = CollectLocalVariables.new(content).remove_block_string(content)
-
-      expect(ret).to eq(r)
-    end
-
-  end
-
-  describe "#evaluate" do
-    it "" do
-      ret = CollectLocalVariables.new(@content).evaluate
-      expect(ret).to eq(@variables)
-    end
-  end
-
-  context "complex example" do
-    before :all do
-      @content = <<-EOF
-a=1
-b = 1
-c=1; d=2
-e=~//; f==1; g===2;
-
-Aa = 1
-
-h.j = 1
-
-k[0] = 1
-
-if (l=1)
-EOF
-    end
-
-    it "scan with pat" do
-      ret = @content.scan(CollectLocalVariables::LOCAL_VARIABLE_PAT).each.with_object([]) { |match, memo|
-        memo << match[1]
-      }
-
-      expect(ret).to eq(%w[a b c d Aa .j l])
-    end
-
-    it "" do
-      ret = CollectLocalVariables.new(@content).evaluate
-      expect(ret).to eq([:a, :b, :c, :d, :l])
-    end
+  d do
+    e = 4
   end
 end
 
-describe Path2Lambda do
-  it "with simple example" do
-    content = "foo = _.name"
-    r = "foo =  lambda { _.name }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)}\n"
-
-    ret = Path2Lambda.new(content).evaluate
-    expect(ret).to eq(r)
-  end
-
-  it "with complex example" do
-    content = <<-EOF
-foo = _.name
-foo = ___.name
-foo = true && _foo || _.bar
+puts 1
+'a' == 'a'
+'a' =~ /./
     EOF
     r = <<-EOF
-foo =  lambda { _.name }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)}
-foo =  lambda { ___.name }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)}
-foo = true && _foo ||  lambda { _.bar }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)}
+_.a = 1
+_.a.b = 2
+_.a = 3
+
+b do
+  _.c = 2
+  _.d = _.c
+  _.c = 3
+
+  d do
+    _.e = 4
+  end
+end
+
+puts 1
+'a' == 'a'
+'a' =~ /./
     EOF
 
-    ret = Path2Lambda.new(content).evaluate
+    ret = LocalVariable2Method.new(content).evaluate
     expect(ret).to eq(r)
   end
 end
 
 describe Default do
   before :each do
-    @optimism = Optimism.new
-    @parser = Default.new(@optimism)
+    @parser = Default.new(Optimism.new)
   end
 
   describe "#eval_block" do
     it do
-      @parser.eval_block do |o|
+      ret = @parser.eval_block do |o|
         o[:a] = 1
       end
+      r = Optimism({a: 1})
 
-      expect(@optimism[:a]).to eq(1)
+      expect(ret).to eq(r)
+    end
+
+    it "(complex)" do
+      a = @parser.eval_block do 
+        _.a = 1
+        _.b.c do
+          _.d = 2
+          _.e = _.d
+          _.f = ___.a
+          _.g = _r.a
+        end
+      end
+      r = Optimism({a: 1, b: {c: {d: 2, e: 2, f: 1, g: 1}}})
+
+      expect(a).to eq(r)
     end
   end
 
-  describe "#collect_variables" do
+  describe "#eval_string" do
     it do
-      @parser.collect_variables("a = 1")
-      expect(@optimism[:a]).to eq(1)
-    end
-
-    it "raise EParse" do
-      expect{@parser.collect_variables("guten 123 123")}.to raise_error(Optimism::EParse)
-    end
-  end
-
-  describe "#call_lambda_path" do
-    it do
-      o = Optimism(
-        a: lambda{ 1 }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)},
-        my: { a: lambda{ 2 }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)} })
-      r = Optimism(a: 1, my: {a: 2})
-
-      @parser.call_lambda_path(o)
-      expect(o).to eq(r)
-    end
-  end
-
-  xdescribe "#eval_string" do
-    it do
-      @parser.eval_string <<-EOF
+      ret = @parser.eval_string <<-EOF
 a = 1
 b:
   c = 2
-  d = _
+  d = _.c
       EOF
+      r = Optimism({a: 1, b: {c: 2, d: 2}})
 
-    end
-  end
-
-  context "(complete)" do
-    it "{|c| block}" do
-      a = Optimism.new do |c|
-        c.a = 1
-        c.b.c = 2
-        c.c.d do |c|
-          c.e = 3
-        end
-      end
-      r = Optimism({a: 1, b: {c: 2}, c: {d: {e: 3}}})
-
-      expect(a).to eq(r)
+      expect(ret).to eq(r)
     end
 
-    it "{ block }" do
-      a = Optimism.new do
-        _.a = 1
-        _.b do
-          _.c = 2
-        end
-      end
-      r = Optimism({a: 1, b: {c: 2}})
-
-      expect(a).to eq(r)
-    end
-
-    xit "(str)" do
-      a = Optimism <<-EOF 
+    it "(complex)" do
+      ret = @parser.eval_string <<-EOF
 a = 1
 b.c = 2
 c.d:
   e = 2
   e1 = _.e
-  e2 = _r.a
-  e3 = __.a
+  e2 = ___.a
+  e3 = _r.a
 
   f:
     g = 3
-
       EOF
       r = Optimism({a: 1, b: {c: 2}, c: {d: {e: 2, e1: 2, e2: 1, e3: 1, f: {g: 3}}}})
     
-      expect(a).to eq(r)
+      expect(ret).to eq(r)
     end
   end
 end

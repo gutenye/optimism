@@ -48,7 +48,7 @@ class Optimism
             case token
             when :block_start
               block_indent_counts << indent_counts
-              statement = statement.sub(/\s*:/, " <<-OPTIMISM_EOF#{block_index}" )
+              statement = statement.sub(/\s*:/, " do")
               block_index += 1
               script << statement << "\n"
             when :statement
@@ -62,7 +62,7 @@ class Optimism
               indent_counts -= 1
               if indent_counts == block_indent_counts[-1]
                 block_index -= 1
-                script << INDENT*(indent_counts) + "OPTIMISM_EOF#{block_index}\n"
+                script << INDENT*(indent_counts) + "end\n"
                 block_indent_counts.pop
               else
                 script << INDENT*(indent_counts)
@@ -120,80 +120,42 @@ class Optimism
         end
       end
 
+      # convert variable assigment
       #
-      #   foo = _.name
-      # =>
-      #   foo = lambda { _.name }
-      # 
-      # all posibilities
+      #   a = 1
+      #   b <<-OPTIMISM_EOF0
+      #     c = 2
+      #     _.c = 3
+      #     foo.d = 4
+      #   OPTIMISM_EOF0
+      #   puts 1
+      #   'a' == 'a'
+      #   'a' =~ /./
+      #  
+      # to
       #
-      #   foo = _.name
-      #   foo = ___.name
-      #   foo = true && _foo || _.bar
+      #    _.a = 1
+      #    b <<-OPTIMISM_EOF0
+      #      _.c = 2
+      #      _.c = 3
+      #      _.foo.d = 4
+      #   OPTIMISM_EOF0
+      #   puts 1
+      #   ...
       #
-      class Path2Lambda < Filter
+      class LocalVariable2Method < Filter
+        LOCAL_VARIABLE_PAT = /^(\s*)([a-z0-9][a-zA-Z0-9_.]*\s*=[^~=])/
+
         def initialize(content)
           @content = content
         end
 
         def evaluate
-          content.split("\n").each.with_object("") { |line, memo|
-            line.split(";").each { |stmt|
-              memo << stmt.gsub(/_+\.[a-z_][A-Za-z0-9_]*/){|m| " lambda { #{m} }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)} "}.rstrip
-              memo << "\n"
-            }
-          }
-        end
-      end
+          contents = content.split("\n").each.with_object([]) do |line, m|
+            m << line.sub(LOCAL_VARIABLE_PAT, "\\1_.\\2")
+          end
 
-      #
-      #   a <<-OPTIMISM_EOF0
-      #     name = 2
-      #     b <<-OPTIMISM_EOF1
-      #       age = 1
-      #     OPTIMISM_EOF1
-      #   OPTIIMMS_EOF0
-      #
-      # ->
-      #
-      #  [:name]
-      class CollectLocalVariables < Filter
-        LOCAL_VARIABLE_PAT=/(.*?)([a-zA-Z_.][a-zA-Z0-9_]*)\s*=[^~=]/
-
-        # @return [Array] local_variable_names
-        def initialize(content)
-          @content = content
-        end
-
-        def evaluate
-          content = remove_block_string(@content)
-          content.scan(LOCAL_VARIABLE_PAT).each.with_object([]) { |match, memo|
-            name = match[1]
-            next if name=~/^[A-Z.]/ # constant and method
-            memo << name.to_sym
-          }
-        end
-
-      private
-
-        # @example
-        #   c = 1
-        #   a <<-OPTIMISM_EOF
-        #    b = 2
-        #   OPTIMISM_EOF
-        # #=>
-        #   c = 1
-        def remove_block_string(content)
-          content.gsub(/
-            (?<brace>
-             (\A|\n)[^\n]+<<-OPTIMISM_EOF[0-9]+
-               (
-                   (?!<<-OPTIMISM_EOF|OPTIMISM_EOF). 
-                 |
-                   \g<brace>
-               )*
-             OPTIMISM_EOF[0-9]+
-            )/mx, '')
+          contents.join("\n") + "\n"
         end
       end
 
@@ -225,6 +187,8 @@ class Optimism
       #
       def eval_block(&blk)
         @optimism.__send__ :instance_exec, @optimism, &blk
+
+        @optimism
       end
 
       # Eval string
@@ -239,69 +203,11 @@ class Optimism
       #
       def eval_string(content)
         content = StringBlock2RubyBlock.new(content).evaluate 
-        content = Path2Lambda.new(content).evaluate
+        content = LocalVariable2Method.new(content).evaluate
 
-        collect_variables(content)
+        @optimism.instance_eval(content)
 
-        call_lambda_path(@optimism)
-      end
-
-      # Collect variables from content.
-      #
-      # @example
-      #
-      #   collect_variables <<-EOF
-      #    a = 1
-      #    b <<-OPTIMISM_EOF0
-      #      c = 2
-      #    OPTIMISM_EOF0
-      #   EOF
-      #
-      #   -> {a: 1}
-      #
-      #
-      # @param [String] content
-      # @return nil
-      def collect_variables(content)
-        vars = CollectLocalVariables.new(content).evaluate
-
-        begin
-          bind = @optimism.instance_eval do
-            bind = binding
-            eval content, bind
-            bind
-          end
-        rescue SyntaxError => e
-          raise EParse, "parse config file error.\n CONTENT:  #{content}\n ERROR-MESSAGE: #{e.message}"
-          exit
-        end
-
-        vars.each { |name|
-          value = bind.eval(name.to_s)
-          @optimism[name] = value
-        }
-
-        nil
-      end
-
-      # Call the lambda-path.
-      # I'm rescurive
-      #
-      #  rc = Optimism <<EOF
-      #    a = _.foo  -> a = lambda{ _.foo }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)
-      #  EOF
-      #  ->
-      #    a = 1
-      def call_lambda_path(optimism)
-        data = optimism._d
-
-        data.each { |k,v|
-          if Proc === v and v.lambda? and v.instance_variable_get(:@_is_optimism_path)
-            data[k] = v.call
-          elsif Optimism === v
-            call_lambda_path(v)
-          end
-        }
+        @optimism
       end
     end
   end

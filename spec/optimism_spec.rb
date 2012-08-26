@@ -161,7 +161,7 @@ describe Optimism do
       expect(@a).to eq(r)
     end
 
-    xit "(string) NEED PARSER" do  
+    it "(string)" do  
       @a._merge!(<<-EOF)
 a = 3
 c = 4
@@ -189,30 +189,6 @@ c = 4
 
       expect(o).to eq(o)
       expect(ret).to eq(r)
-    end
-  end
-
-  describe "#_repalce" do
-    it "root node" do
-      a = Optimism({a: 1})
-      b = Optimism({b: {c: 2}})
-      r = Optimism({c: 2})
-
-      a._replace(b.b)
-      expect(a).to eq(r)
-      expect(a._name).to eq("")
-      expect(a._parent).to be_nil
-    end
-
-    it "sub node" do
-      a = Optimism({a: {a1: 1}})
-      b = Optimism({b: 2})
-      r = Optimism({a: {b: 2}})
-
-      a.a._replace(b)
-      expect(a).to eq(r)
-      expect(a.a._name).to eq("a")
-      expect(a.a._parent).to eq(r)
     end
   end
 
@@ -333,6 +309,7 @@ c = 4
     end
 	end
 
+
 	context "path" do
     before :all do
       @a = Optimism({b: {c: {d: 2}}})
@@ -381,6 +358,35 @@ c = 4
       it do
         expect(@aptimism._split_path("foo")).to eq(["_", "foo"])
         expect(@aptimism._split_path("foo.bar.baz")).to eq(["foo.bar", "baz"])
+      end
+    end
+
+    describe "#_create_child_node" do
+      it do
+        a = Optimism.new(nil, name: "root")
+        r = Optimism.new(nil, name: "foo")
+        root = Optimism({foo: Optimism.new})
+
+        ret = a._create_child_node("foo")
+        expect(ret).to eq(r)
+        expect(ret._root).to eq(root)
+        expect(ret._name).to eq("foo")
+        expect(ret._parent._name).to eq("root")
+      end
+    end
+
+    describe "#_create_parent_node" do
+      it do
+        a = Optimism({a: 1})
+        r = Optimism({foo: {a: 1}})
+
+        ret = a._create_parent_node("foo", nil, name: "root")
+        expect(ret).to eq(r)
+        expect(ret._name).to eq("root")
+        expect(ret._parent).to be_nil
+
+        expect(ret.foo._name).to eq("foo")
+        expect(ret.foo._parent._name).to eq("root")
       end
     end
 

@@ -45,7 +45,7 @@ class Optimism
   EParse        = Class.new Error
 
   BUILTIN_METHODS = [:p, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open, :send] # not :raise
-  UNDEF_METHODS = [:to_ary, :&, :_root=, :_=]
+  UNDEF_METHODS = [:to_ary, :&, :_root=, :_=, :_replace]
 
   @@extension = {}
   class << self
@@ -205,8 +205,7 @@ class Optimism
   #
   # @return [Optimism] new <#Optimism>
   def _dup
-    o = Optimism.new(@opts)
-    o._name = self._name
+    o = Optimism.new(nil, @opts)
     o._data = _d.dup
     o._data.each {|k,v| v.instance_variable_set(:@_parent, o) if Optimism === v}
 
@@ -279,7 +278,7 @@ class Optimism
       if node._has_key?(name) and Optimism === node[name]
         node = node[name]
       elsif !node._has_key?(name) and opts[:build]
-        node = node._create_node(name, nil)
+        node = node._create_child_node(name)
       else
         return nil
       end
@@ -299,10 +298,7 @@ class Optimism
       if node._parent and node._parent._name == name
           node = node._parent
       elsif !node._parent and opts[:build]
-        options = Util.slice(@opts, :default, :symbolize_key, :parser)
-        prev_node = Optimism.new(nil, options)
-        prev_node[name.to_sym] = node # link the node.
-        node = prev_node
+        node = node._create_parent_node(name)
       else
         return nil
       end
@@ -543,7 +539,7 @@ class Optimism
     #   a = 2
     # EOF
     else
-      return _create_node(name, args[0], &blk)
+      return _create_child_node(name, args[0], &blk)
     end
   end
 
@@ -552,15 +548,27 @@ class Optimism
     true
   end
 
-  # Create a new subnode and return it.
-  # the subnode is link to it's parent.
+  # Create a new child node, link it and return it.
   # @protected
   #
-  def _create_node(name, content=nil, opts={}, &blk)
+  def _create_child_node(name, content=nil, opts={}, &blk)
+    options = Util.slice(@opts, :default, :symbolize_key, :parser).merge(opts).merge({name: name.to_s, parent: self})
+    next_node = Optimism.new(content, options, &blk)
+    _data[name.to_sym] = next_node
+
+    next_node
+  end
+
+  # Create a new parent node, link it  and return it.
+  # @protected
+  def _create_parent_node(child_name, content=nil, opts={}, &blk)
     options = Util.slice(@opts, :default, :symbolize_key, :parser).merge(opts)
-    next_o = Optimism.new(content, options, &blk)
-    self[name.to_sym] = next_o # link the node
-    return next_o
+    prev_node = Optimism.new(content, options, &blk)
+    self._name = child_name.to_s
+    self._parent = prev_node
+    prev_node._data[child_name.to_sym] = self
+
+    prev_node
   end
 
 protected
