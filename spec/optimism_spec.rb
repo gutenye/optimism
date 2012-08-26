@@ -2,6 +2,12 @@ require "spec_helper"
 
 public_all_methods Optimism
 
+class MyParser
+  def self.parse(*args)
+    "my_parser"
+  end
+end
+
 describe Optimism do
   # helper method to build <#Optimism>.
   def build(hash, o={})
@@ -102,6 +108,37 @@ describe Optimism do
     it "(str)" do
       Optimism.any_instance.should_receive(:_parse!).with("guten")
       Optimism.new("guten")
+    end
+
+    it "(namespace: x)" do
+      o = Optimism.new({a: 1}, namespace: "b.c")
+      pd :r, o._root
+
+      r = build({b: {c: {a: 1}}})
+
+      expect(o).to eq(r)
+    end
+  end
+
+  describe "#_parse!" do
+    it "(parser: nil)" do
+      Optimism::Parser::Default.stub("parse"){ 1 }
+
+      expect(Optimism.new._parse!(nil)).to eq(1)
+    end
+
+    it "(parser: symbol)" do
+      Optimism::Parser.parsers[:foo] = MyParser
+      expect(Optimism.new(nil, parser: :foo)._parse!(nil)).to eq("my_parser")
+    end
+
+    it "(parser: Class)" do
+      expect(Optimism.new(nil, parser: MyParser)._parse!(nil)).to eq("my_parser")
+    end
+
+    it "(parser: proc)" do
+      parser = proc { "proc" }
+      expect(Optimism.new(nil, parser: parser)._parse!(nil)).to eq("proc")
     end
   end
 

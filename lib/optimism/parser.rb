@@ -11,5 +11,3 @@ class Optimism
 end
 
 require "optimism/parser/base"
-require "optimism/parser/default"
-require "optimism/parser/yaml"

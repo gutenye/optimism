@@ -1,3 +1,4 @@
+require "optimism/parser"
 require "optimism/semantics"
 require "optimism/require"
 
@@ -46,10 +47,32 @@ class Optimism
   BUILTIN_METHODS = [:p, :sleep, :rand, :srand, :exit, :require, :at_exit, :autoload, :open, :send] # not :raise
   UNDEF_METHODS = [:to_ary, :&, :_root=, :_=]
 
+  @@extension = {}
   class << self
     public *BUILTIN_METHODS 
     public :undef_method
 
+    # Return all extensions for require.
+    def extension
+      @@extension
+    end
+
+    # Add an extension for require.
+    #
+    # @example
+    #
+    #   add_extension(".rb", Optimism::Parser::Default)
+    #   Optimism.require("a.rb")   # will use Default Parser to parse the content.
+    #
+    # @param [String, Array]
+    # @param [Class] parser
+    def add_extension(extension_s, parser)
+      extensions = Util.wrap_array(extension_s)
+
+      extensions.each { |ext|
+        @@extension[ext] = parser
+      }
+    end
   end
 
   extend Require
@@ -94,10 +117,21 @@ class Optimism
   # @option opts [String] :namespace (nil)
   # @option opts [String] :name ("") node name
   # @option opts [Optimism] :parent (nil) parent node
-  # @option opts [Symbol] :parser (:default) parser to parse content and block. 
+  # @option opts [Symbol,Class,Proc] :parser (:default) parser to parse content and block. 
   def initialize(content=nil, opts={}, &blk)
     @opts = {symbolize_key: true}.merge(opts)
-    @_parser = Parser.parsers[opts[:parser] || :default]
+
+    @_parser = case (p=opts[:parser])
+               when Symbol
+                Parser.parsers[p].method(:parse)
+               when Class
+                 p.method(:parse)
+               when Proc
+                 p
+               else
+                 Parser::Default.method(:parse)
+               end
+
     @_name = @opts[:name] || ""
     @_parent = @opts[:parent]
 
@@ -111,7 +145,7 @@ class Optimism
       _parse! content, &blk if content or blk
     end
 
-    _walk_up(@opts[:namespace], :build => true, :reverse => true) if @opts[:namespace]
+    _walk_up!(@opts[:namespace], :build => true, :reverse => true) if @opts[:namespace]
   end
 
   # Returns true if equal without compare node name.
@@ -238,7 +272,7 @@ class Optimism
   # @param [Hash] opts
   # @option opts [Boolean] :build (nil) build the path if path doesn't exists.
   # @option opts [Boolean] :reverse (nil) reverse the path
-  # @return [Optimism,nil] the result node.
+  # @return [Optimism,nil] the result node
   def _walk(path, opts={})
     return self if %w[_ -_].include?(path)
 
@@ -256,7 +290,7 @@ class Optimism
       if node._has_key?(name) and Optimism === node[name]
         node = node[name]
       elsif !node._has_key?(name) and opts[:build]
-        node = node._create_node(name)
+        node = node._create_node(name, nil)
       else
         return nil
       end
@@ -481,8 +515,8 @@ class Optimism
     end
   end
 
-  def _parse!(content=nil, &blk)
-    @_parser.parse(self, content, &blk)
+  def _parse!(content, &blk)
+    @_parser.call(self, content, &blk)
   end
 
   # pretty print
@@ -664,4 +698,7 @@ module Kernel
   end
 end
 
-require "optimism/parser"
+# extensions
+require "optimism/parser/default"
+require "optimism/parser/yaml"
+require "optimism/parser/json"

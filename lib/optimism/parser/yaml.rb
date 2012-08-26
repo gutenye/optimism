@@ -7,3 +7,5 @@ class Optimism
     end
   end
 end
+
+Optimism.add_extension ".yml", Optimism::Parser::YAML

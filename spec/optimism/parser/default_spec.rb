@@ -1,11 +1,10 @@
 require "spec_helper"
 
-Parser = Optimism::Parser
-StringBlock2RubyBlock = Parser::StringBlock2RubyBlock
-CollectLocalVariables = Parser::CollectLocalVariables
-Path2Lambda = Parser::Path2Lambda
-
-public_all_methods Parser, StringBlock2RubyBlock, CollectLocalVariables, Path2Lambda
+Default = Optimism::Parser::Default
+StringBlock2RubyBlock = Default::StringBlock2RubyBlock
+CollectLocalVariables = Default::CollectLocalVariables
+Path2Lambda = Default::Path2Lambda
+public_all_methods Default, StringBlock2RubyBlock, CollectLocalVariables, Path2Lambda
 
 describe StringBlock2RubyBlock do
     # simple
@@ -251,10 +250,10 @@ foo = true && _foo ||  lambda { _.bar }.tap{|s| s.instance_variable_set(:@_is_op
   end
 end
 
-describe Parser do
+describe Default do
   before :each do
     @optimism = Optimism.new
-    @parser = Parser.new(@optimism)
+    @parser = Default.new(@optimism)
   end
 
   describe "#eval_block" do
@@ -277,8 +276,8 @@ describe Parser do
   describe "#call_lambda_path" do
     it do
       o = Optimism(
-        a: lambda{ 1 }.tap{|s| s.instance_variable_set(:@_optimism, true)},
-        my: { a: lambda{ 2 }.tap{|s| s.instance_variable_set(:@_optimism, true)} })
+        a: lambda{ 1 }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)},
+        my: { a: lambda{ 2 }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)} })
       r = Optimism(a: 1, my: {a: 2})
 
       @parser.call_lambda_path(o)
@@ -286,7 +285,7 @@ describe Parser do
     end
   end
 
-  describe "#eval_string" do
+  xdescribe "#eval_string" do
     it do
       @parser.eval_string <<-EOF
 a = 1
@@ -297,105 +296,50 @@ b:
 
     end
   end
-end
 
-
-describe Optimism do
-  descrieb ".parser" do
-  end
-end
-
+  context "(complete)" do
+    it "{|c| block}" do
       a = Optimism.new do |c|
         c.a = 1
-        c.b do |c|
-          c.c = 2
+        c.b.c = 2
+        c.c.d do |c|
+          c.e = 3
         end
       end
-      r = build(a: 1, b: build(c: 2))
+      r = Optimism({a: 1, b: {c: 2}, c: {d: {e: 3}}})
 
       expect(a).to eq(r)
+    end
 
+    it "{ block }" do
+      a = Optimism.new do
+        _.a = 1
+        _.b do
+          _.c = 2
+        end
+      end
+      r = Optimism({a: 1, b: {c: 2}})
 
-    it "(str)" do
+      expect(a).to eq(r)
+    end
+
+    xit "(str)" do
       a = Optimism <<-EOF 
 a = 1
+b.c = 2
+c.d:
+  e = 2
+  e1 = _.e
+  e2 = _r.a
+  e3 = __.a
+
+  f:
+    g = 3
+
       EOF
-      r = build(a: 1)
+      r = Optimism({a: 1, b: {c: 2}, c: {d: {e: 2, e1: 2, e2: 1, e3: 1, f: {g: 3}}}})
     
       expect(a).to eq(r)
     end
-
-    it "(str) complex" do
-      a = Optimism <<-EOF
-a = 1
-b.c:
-  d = _.a
-      EOF
-      r = build(a: 1, b: build(c: build(d: 1)))
-
-      expect(a).to eq(r)
-    end
-
-
-	context "namespace" do
-		it "supports basic namespace with ruby-syntax" do
-			rc = Optimism do |c|
-				c.a.b.c = 1
-			end
-			rc.should == Optimism({a: {b: {c:1}}})
-		end
-
-    it "supports basic namespace with string-syntax" do
-      rc = Optimism <<-EOF
-a.b.c = 1
-      EOF
-      rc.should == Optimism({a: {b: {c: 1}}})
-    end
-
-		it "supports basic2 namespace with ruby-syntax" do
-			rc = Optimism do |c|
-				a.b do |c|
-          c.c = 1
-        end
-			end
-			rc.should == Optimism({a: {b: {c:1}}})
-		end
-
-    it "supports basic2 namespace with string-syntax" do
-      rc = Optimism <<-EOF
-a.b:
-  c = 1
-      EOF
-      rc.should == Optimism({a: {b: {c: 1}}})
-    end
-
-			it "supports complex namespace with ruby-syntax" do
-				rc = Optimism do |c|
-					c.age = 1
-
-					my do |c|
-						c.age = 2
-
-						friend do |c|
-							c.age = 3
-						end
-					end
-				end
-
-				rc.should == Optimism({age: 1, my: {age: 2, friend: {age: 3}}})
-			end
-
-			it "supports complex namespace with string-syntax" do
-				rc = Optimism <<-EOF
-age = 1
-
-my:
-  age = 2
-
-  friend:
-    age = 3
-        EOF
-
-				rc.should == Optimism({age: 1, my: {age: 2, friend: {age: 3}}})
-      end
-	end
+  end
+end

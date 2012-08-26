@@ -23,7 +23,7 @@ class Optimism
       # @return [Array<Array,Hash>] 
       def extract_options(args, default={})
         if args.last.instance_of?(Hash)
-          [args[0...-1], defalut.merge(args[-1])]
+          [args[0...-1], default.merge(args[-1])]
         else
           [args, default]
         end
@@ -66,7 +66,7 @@ class Optimism
       #
       # Thus, in this case the behavior is different for +nil+, and the differences with
       # <tt>Kernel#Array</tt> explained above apply to the rest of +object+s.
-      def array_wrap(object)
+      def wrap_array(object)
         if object.nil?
           []
         elsif object.respond_to?(:to_ary)
@@ -94,9 +94,9 @@ class Optimism
       #
       # @example
       #
-      #   path_join(".", "foo")  -> "foo" not "./foo"
+      #   join_path(".", "foo")  -> "foo" not "./foo"
       #
-      def path_join(dir, *names)
+      def join_path(dir, *names)
         dir == "." ? File.join(*names) : File.join(dir, *names)
       end
 

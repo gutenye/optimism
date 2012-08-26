@@ -38,7 +38,11 @@ module RSpec
 end
 
 def public_all_methods(*klasses)
-  klasses.each {|klass|
-    klass.class_eval {public *(self.protected_instance_methods(false) + self.private_instance_methods(false))}
-  }
+	klasses.each {|klass|
+		klass.class_eval {
+      public *(self.protected_instance_methods(false) + self.private_instance_methods(false))
+      public_class_method *(self.protected_methods(false) + self.private_methods(false))
+    }
+	}
 end
+

@@ -1,6 +1,6 @@
 class Optimism
   module Require
-    # load configuration from file
+    # Load configuration from file
     #
     # use $: and support home path like '~/.foorc'.
     # by default, it ignore missing files.
@@ -45,23 +45,20 @@ class Optimism
     #   
     # @overload require_file(*paths, o={})
     #   @param [String] *paths
-    #   @param [Hash] opts
-    #   @option opts [String] :namespace wrap into a namespace.
+    #   @param [Hash] opts other options pass to Optimism.new
     #   @option opts [Boolean] :merge (:replace) :replace :ignore
+    #   @option opts [Boolean] :namespace (nil) 
     #   @return [Optimism]
     def require_file(*paths)
       paths, optimism_opts = Util.extract_options(paths, merge: :replace)
       opts = [:namespace, :merge, :raise].each.with_object({}){|n, m|
-        m[n] = optimsm_opts.delete(n)
+        m[n] = optimism_opts.delete(n)
       }
 
       o = Optimism.new
       paths.each { |name|
         path = find_file(name, {raise: opts[:raise]}) 
-
-        if File.extname(path) == "yml"
-          opts[:parser] = YAML.optimism_parser
-        end
+        optimism_opts[:parser] = Optimism.extension[File.extname(path)] 
 
         o2 = Optimism.new(File.read(path), optimism_opts)
 
@@ -74,7 +71,7 @@ class Optimism
         end
       }
 
-      o._walk!("-#{opts[:namespace]}", :build => true) if opts[:namespace]
+      o._walk_up!(opts[:namespace], :build => true, :reverse => true) if opts[:namespace]
 
       o
     end
@@ -195,10 +192,10 @@ class Optimism
 
       # name
       else
-        path = $:.find.with_object("") { |p, file|
-          [".rb", ".yml", ""].each { |ext|
-            file.replace File.join(p, name+ext)
-            File.exists? file
+        path = $:.find.with_object("") { |p, memo|
+          (Optimism.extension.keys+[""]).each { |ext|
+            memo.replace File.join(p, name+ext)
+            File.exists? memo
           }
         }
       end

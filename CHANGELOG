@@ -1,8 +1,10 @@
 *Optimism (3.3.0)*
 
-	* add yaml support.
+	* add yaml,json support.
+	* you can write extensions to parser.
 
 	* change path. '_' is current path, '_r' is root path.
+	* remove 'Optimism#_replace _walk!'
 	* remove 'Optimism.get', 'Optimsm.convert', 'Optimims.[]', 'Optimism#_get', 'Optimism#_child'
 	* remove 'hike' dependency
 	* add 'Optimism.require!', 'Optimism#_has_key2?'

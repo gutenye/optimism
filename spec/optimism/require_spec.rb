@@ -3,6 +3,9 @@ require "spec_helper"
 Require = Optimism::Require
 public_all_methods Require
 
+pd Optimism.extension.keys
+
+
 describe Require do
   describe ".find_file" do
     before(:all) {

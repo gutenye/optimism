@@ -237,8 +237,8 @@ module Optimism::Parser
     #   EOF
     #
     def eval_string(content)
-      content = Parser::StringBlock2RubyBlock.new(content).evaluate 
-      content = Parser::Path2Lambda.new(content).evaluate
+      content = StringBlock2RubyBlock.new(content).evaluate 
+      content = Path2Lambda.new(content).evaluate
 
       collect_variables(content)
 
@@ -262,7 +262,7 @@ module Optimism::Parser
     # @param [String] content
     # @return nil
     def collect_variables(content)
-      vars = Parser::CollectLocalVariables.new(content).evaluate
+      vars = CollectLocalVariables.new(content).evaluate
 
       begin
         bind = @optimism.instance_eval do
@@ -304,3 +304,5 @@ module Optimism::Parser
     end
   end
 end
+
+Optimism.add_extension ".rb", Optimism::Parser::Default
