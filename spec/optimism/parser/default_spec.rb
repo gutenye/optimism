@@ -81,7 +81,8 @@ g = 1\n
 			ret = parser.scan(parser.content).with_object([]) { |(token,stmt), memo|
 				memo <<  [token, stmt]
       }
-      ret.should == @content_indents
+
+      expect(ret).to eq(@content_indents)
     end
 
     it "complex example" do
@@ -89,19 +90,22 @@ g = 1\n
       ret = parser.scan(parser.content).with_object([]) { |(token,stmt), memo|
         memo << [token, stmt]
       }
-      ret.should == @content1_indents
+
+      expect(ret).to eq(@content1_indents)
     end
   end
 
 	describe "#evaluate" do
 		it "simple example" do
       ret = StringBlock2RubyBlock.new(@content).evaluate
-      ret.should == @content_evaluate
+
+      expect(ret).to eq(@content_evaluate)
     end
 
 		it "complex example" do
       ret = StringBlock2RubyBlock.new(@content1).evaluate
-      ret.should == @content1_evaluate
+
+      expect(ret).to eq(@content1_evaluate)
     end
 
 		it "has no effect to ruby-syntax" do
@@ -116,7 +120,8 @@ b do
 end
     EOF
 			ret = StringBlock2RubyBlock.new(content).evaluate
-      ret.should == content.gsub(/\t/, "  ")+"\n"
+
+      expect(ret).to eq(content.gsub(/\t/, "  ")+"\n")
 		end
 
 		it "works with <tab> indent" do
@@ -124,12 +129,14 @@ end
 a:
 	b 1
 EOF
-			expect = <<EOF
+			r = <<EOF
 a <<-OPTIMISM_EOF0
   b 1
 OPTIMISM_EOF0\n
 EOF
-      StringBlock2RubyBlock.new(content).evaluate.should == expect
+      ret = StringBlock2RubyBlock.new(content).evaluate
+
+      expect(ret).to eq(r)
 		end
 
     it "works with <space> indent" do
@@ -138,13 +145,15 @@ a:
   b 1
 EOF
 
-			expect = <<EOF
+			r = <<EOF
 a <<-OPTIMISM_EOF0
   b 1
 OPTIMISM_EOF0\n
 EOF
 
-      StringBlock2RubyBlock.new(content).evaluate.should == expect
+      ret = StringBlock2RubyBlock.new(content).evaluate
+
+      expect(ret).to eq(r)
     end
 	end
 end
@@ -172,7 +181,7 @@ b = 2
   describe "#remove_block_strint" do
     it "" do
       ret = CollectLocalVariables.new(@content).remove_block_string(@content)
-      ret.should == @content_clean
+      expect(ret).to eq(@content_clean)
     end
 
     it "works with \A" do
@@ -181,9 +190,10 @@ a.b <<-OPTIMISM_EOF0
   c = 1
 OPTIMISM_EOF0
       EOF
-      expect="\n"
+      r="\n"
       ret = CollectLocalVariables.new(content).remove_block_string(content)
-      ret.should == expect
+
+      expect(ret).to eq(r)
     end
 
   end
@@ -191,7 +201,7 @@ OPTIMISM_EOF0
   describe "#evaluate" do
     it "" do
       ret = CollectLocalVariables.new(@content).evaluate
-      ret.should == @variables
+      expect(ret).to eq(@variables)
     end
   end
 
@@ -218,11 +228,12 @@ EOF
         memo << match[1]
       }
 
-      ret.should == %w(a b c d Aa .j l)
+      expect(ret).to eq(%w[a b c d Aa .j l])
     end
 
     it "" do
-      CollectLocalVariables.new(@content).evaluate.should == [:a, :b, :c, :d, :l]
+      ret = CollectLocalVariables.new(@content).evaluate
+      expect(ret).to eq([:a, :b, :c, :d, :l])
     end
   end
 end
@@ -230,8 +241,10 @@ end
 describe Path2Lambda do
   it "with simple example" do
     content = "foo = _.name"
-    expect = "foo =  lambda { _.name }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)}\n"
-    Path2Lambda.new(content).evaluate.should == expect
+    r = "foo =  lambda { _.name }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)}\n"
+
+    ret = Path2Lambda.new(content).evaluate
+    expect(ret).to eq(r)
   end
 
   it "with complex example" do
@@ -240,13 +253,14 @@ foo = _.name
 foo = ___.name
 foo = true && _foo || _.bar
     EOF
-    expect = <<-EOF
+    r = <<-EOF
 foo =  lambda { _.name }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)}
 foo =  lambda { ___.name }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)}
 foo = true && _foo ||  lambda { _.bar }.tap{|s| s.instance_variable_set(:@_is_optimism_path, true)}
     EOF
 
-    Path2Lambda.new(content).evaluate.should == expect
+    ret = Path2Lambda.new(content).evaluate
+    expect(ret).to eq(r)
   end
 end
 
@@ -270,6 +284,10 @@ describe Default do
     it do
       @parser.collect_variables("a = 1")
       expect(@optimism[:a]).to eq(1)
+    end
+
+    it "raise EParse" do
+      expect{@parser.collect_variables("guten 123 123")}.to raise_error(Optimism::EParse)
     end
   end
 

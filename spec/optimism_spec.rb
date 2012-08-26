@@ -112,11 +112,11 @@ describe Optimism do
 
     it "(namespace: x)" do
       o = Optimism.new({a: 1}, namespace: "b.c")
-      pd :r, o._root
-
-      r = build({b: {c: {a: 1}}})
+      r = build({a: 1}) 
+      root = build(b: build(c: build(a: 1)))
 
       expect(o).to eq(r)
+      expect(o._r).to eq(root)
     end
   end
 
@@ -454,61 +454,6 @@ c = 4
         expect(a._walk("b.c")._name).to eq("c")
         expect(c._walk("-b.a")._name).to eq("a")
       end
-    end
-
-    describe "#_walk_down!" do
-      it do
-        a = Optimism({a: {b: {c: 1}}})
-        r = Optimism({c: 1})
-
-        a._walk_down!("a.b")
-        expect(a).to eq(r)
-      end
-
-      it "(build: true)" do
-        a = Optimism.new
-        r = Optimism({a: {b: Optimism.new}})
-
-        a._walk_down!("a.b", build: true)
-        expect(a).to eq(r.a.b)
-        expect(a._root).to eq(r)
-      end
-
-
-      it "raise EPath when wrong path" do
-        a = Optimism.new
-
-        expect{a._walk_down!("a.b")}.to raise_error(Optimism::EPath)
-      end
-    end
-
-    describe "#_walk_up!" do
-      it do
-        a = Optimism({a: 1})
-        r = Optimism({b: {c: {a: 1}}})
-
-        a._walk_up!("c.b", :build => true)
-        expect(a).to eq(r)
-      end
-
-      it "raise EPath when wrong path" do
-        a = Optimism.new
-
-        expect{a._walk_up!("c.b")}.to raise_error(Optimism::EPath)
-      end
-    end
-
-    describe "#_walk!" do
-      before :each do
-        o = Optimism({a: {b: {c: {d: 1}}}})
-        @a = o._walk_down("a")
-        @c = o._walk_down("a.b.c")
-      end
-
-      it { @a._walk!("_");    expect(@a._name).to eq("a") }
-      it { @a._walk!("-_");   expect(@a._name).to eq("a") }
-      it { @a._walk!("b.c");  expect(@a._name).to eq("c") }
-      it { @c._walk!("-b.a"); expect(@c._name).to eq("a") }
     end
   end
 

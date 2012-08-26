@@ -1,10 +1,7 @@
 require "spec_helper"
 
 Require = Optimism::Require
-public_all_methods Require
-
-pd Optimism.extension.keys
-
+public_all_methods Require, Require::ClassMethods
 
 describe Require do
   describe ".find_file" do
@@ -13,55 +10,48 @@ describe Require do
     }
 
     it "finds an absolute path" do
-      Optimism.find_file(@rc_path).should == @rc_path
+      expect(Optimism.find_file(@rc_path)).to eq(@rc_path)
     end
 
     it "finds a name path" do
-      Optimism.find_file("data/rc").should == @rc_path
+      expect(Optimism.find_file("data/rc")).to eq(@rc_path)
     end
 
     it "loads a home path" do
       ENV["HOME"] = $spec_dir
-      Optimism.find_file("~/data/rc.rb").should == File.join(ENV["HOME"], "data/rc.rb")
+      expect(Optimism.find_file("~/data/rc.rb")).to eq(File.join(ENV["HOME"], "data/rc.rb"))
     end
 
     it "finds ./relative/path" do
       Dir.chdir($spec_dir)
-      Optimism.find_file("./").should == $spec_dir
+      expect(Optimism.find_file("./")).to eq($spec_dir)
     end
 
     it "finds ../relative/path" do
       Dir.chdir($spec_dir)
-      Optimism.find_file("../").should == File.expand_path("../", $spec_dir)
+      expect(Optimism.find_file("../")).to eq(File.expand_path("../", $spec_dir))
     end
   end
 
   describe ".require_file" do
-    it "works with :namespace" do
-      o = Optimism.require("data/rc", :namespace => "a.b")
-      o.should == Optimism({a: {b: {a: 1}}})
+    it "works on :merge with :replace" do
+      o = Optimism.require_file("data/mixin_a", "data/mixin_b", :merge => :replace)
+      expect(o).to eq(Optimism({a: {b: 2, c: "foo", d: "bar"}}))
     end
 
-    it "works on :mixin with :replace" do
-      o = Optimism.require("data/mixin_a", "data/mixin_b", :mixin => :replace)
-      o.should == Optimism({a: {b: 2, c: "foo", d: "bar"}})
+    it "works on :merge with :ignore" do
+      o = Optimism.require_file("data/mixin_a", "data/mixin_b", :merge => :ignore)
+      expect(o).to eq(Optimism({a: {b: 1, c: "foo", d: "bar"}}))
     end
 
-    it "works on :mixin with :ignore" do
-      o = Optimism.require("data/mixin_a", "data/mixin_b", :mixin => :ignore)
-      o.should == Optimism({a: {b: 1, c: "foo", d: "bar"}})
+    it "not raise EMissingFile by default" do
+      expect{ Optimism.require_file("data/file_not_exists") }.not_to raise_error(Optimism::EMissingFile)
     end
+  end
 
-    it "raise InvalidSyntax" do
-      lambda{ Optimism.require("data/invalid_syntax") }.should raise_error(Optimism::EParse)
-    end
-
-    it "not raise MissingFile by default" do
-      lambda { Optimism.require("data/file_not_exists") }.should_not raise_error(Optimism::MissingFile)
-    end
-
-    it "raise MissingFile with :raise_missing_file" do
-      lambda { Optimism.require("data/file_not_exists", :raise_missing_file => true) }.should raise_error(Optimism::MissingFile)
+  describe ".require_file!" do
+    it "raise EMissingFile" do
+      expect{ Optimism.require_file!("data/file_not_exists") }.to raise_error(Optimism::EMissingFile)
     end
   end
 
@@ -75,92 +65,83 @@ describe Require do
 
     it "load an environment variable" do
       o = Optimism.require_env("A")
-      o.should == Optimism({a: "1"})
+      expect(o).to eq(Optimism({a: "1"}))
     end
 
     it "with :case_sensive option" do
       o = Optimism.require_env("A", :case_sensive => true)
-      o.should == Optimism({A: "1"})
+      expect(o).to eq(Optimism({A: "1"}))
     end
 
     it "support block, convert value to integer." do
       o = Optimism.require_env("A") { |a|
         a.to_i
       }
-      o.should == Optimism({a: 1})
+      expect(o).to eq(Optimism({a: 1}))
     end
 
     it "load multiplate environment variables at once" do
       o = Optimism.require_env("A", "B")
-      o.should == Optimism({a: "1", b: "2"})
+      expect(o).to eq(Optimism({a: "1", b: "2"}))
     end
 
     it "load by pattern" do
       o = Optimism.require_env(/OPTIMISM_(.*)/)
-      o.should == Optimism({a: "1", b_c: "2"})
+      expect(o).to eq(Optimism({a: "1", b_c: "2"}))
     end
 
     it "load by pattern, but env not exists" do
       o = Optimism.require_env(/ENV_NOT_EXISTS__(.)/)
-      o.should == Optimism.new
+      expect(o).to eq(Optimism.new)
     end
 
     it "load by pattern with :split" do
       o = Optimism.require_env(/OPTIMISM_(.*)/, :split => "_")
-      o.should == Optimism({a: "1", b: {c: "2"}})
+      expect(o).to eq(Optimism({a: "1", b: {c: "2"}}))
     end
 
   end
 
   describe ".require_input" do
     it "works" do
-      module Require
-        def gets() "guten\n" end
-      end
-      o = Optimism.require_input("what's your name?", "my.name")
-      o.should == Optimism({my: {name: "guten"}})
+      Optimism.stub(:gets){ "guten\n" }
+
+      silence { @a = Optimism.require_input("what's your name?", "my.name") }
+      expect(@a).to eq(Optimism({my: {name: "guten"}}))
     end
 
     it "with :default option" do
-      module Require
-        def gets() "\n" end
-      end
-      o = Optimism.require_input("what's your name?", "my.name", default: "foo")
-      o.should == Optimism({my: {name: "foo"}})
+      Optimism.stub(:gets){ "\n" }
+
+      silence{ @a = Optimism.require_input("what's your name?", "my.name", default: "foo") }
+      expect(@a).to eq(Optimism({my: {name: "foo"}}))
     end
 
     it "call with block" do
-      module Require
-        def gets() "1\n" end
-      end
-      o = Optimism.require_input("how old are you?", "age") { |age| age.to_i }
-      o.should == Optimism({age: 1})
+      Optimism.stub(:gets){ "1\n" }
+
+      silence{ @a = Optimism.require_input("how old are you?", "age") { |age| age.to_i } }
+      expect(@a).to eq(Optimism({age: 1}))
     end
   end
 
   describe "#_require_input" do
     it "works" do
-      module Require
-        def gets() "fine\n" end
-      end
+      Optimism.stub(:gets){ "fine\n" }
 
       o = Optimism.new
-      o.a.b._require_input "how are you?", "status"
-
-      o.a.b.status.should == "fine"
+      silence{ o.a.b._require_input "how are you?", "status" }
+      expect(o.a.b.status).to eq("fine")
     end
 
     it "with default value" do
-      module Require
-        def gets() "\n" end
-      end
+      Optimism.stub(:gets){ "\n" }
 
       o = Optimism do
         my.status = "well"
       end
-      o.my._require_input "how are you?", "status"
-
-      o.my.status.should == "well"
+      silence{ o.my._require_input "how are you?", "status" }
+      expect(o.my.status).to eq("well")
     end
   end
 end

@@ -6,8 +6,8 @@ $spec_data = File.join($spec_dir, "data")
 $spec_tmp = File.join($spec_dir, "tmp")
 
 RSpec.configure do |config|
-  def capture(stream)
-    reqire "stringio"
+  def capture(stream=:stdout)
+    require "stringio"
     begin
       stream = stream.to_s
       eval "$#{stream} = StringIO.new"

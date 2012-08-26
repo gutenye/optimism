@@ -1,3 +1,4 @@
+require "optimism/util"
 require "optimism/parser"
 require "optimism/semantics"
 require "optimism/require"
@@ -37,10 +38,9 @@ require "optimism/require"
 # if you want disable it. with :symbolize_key => ture in constructor function.
 class Optimism
   autoload :VERSION, "optimism/version"
-  autoload :Util, "optimism/util"
 
   Error         = Class.new Exception 
-  MissingFile   = Class.new Error
+  EMissingFile   = Class.new Error
   EPath         = Class.new Error
   EParse        = Class.new Error
 
@@ -75,7 +75,7 @@ class Optimism
     end
   end
 
-  extend Require
+  include Require
 
   undef_method *BUILTIN_METHODS
   include Semantics
@@ -97,7 +97,8 @@ class Optimism
   #
   #   # with :namespace option
   #   rc = Optimism.new("foo=1", :namespace => "a.b")
-  #   rc.a.b.foo #=> 1
+  #   rc               -> <#Optimism foo: 1>
+  #   rc._root         -> <#Optimism a: <#Optimsm b: <#Optimism foo: 1>>>
   #
   #   # root node
   #   Optimism.new()         # is {name: "", parent: nil}
@@ -145,7 +146,7 @@ class Optimism
       _parse! content, &blk if content or blk
     end
 
-    _walk_up!(@opts[:namespace], :build => true, :reverse => true) if @opts[:namespace]
+    _walk_up(@opts[:namespace], :build => true, :reverse => true) if @opts[:namespace]
   end
 
   # Returns true if equal without compare node name.
@@ -210,18 +211,6 @@ class Optimism
     o._data.each {|k,v| v.instance_variable_set(:@_parent, o) if Optimism === v}
 
     o
-  end
-
-  # replace with a new <#Optimism>
-  #
-  # @param [Optimism] obj
-  # @return [Optimism] self
-  def _replace(other)
-    raise ArgumentError, "need Optimism type -- #{other.class.inspect}" unless Optimism === other 
-
-    self._data = other._data
-
-    self
   end
 
   ## path
@@ -319,56 +308,6 @@ class Optimism
       end
     }
     node
-  end
-
-  # @raise EPath
-  #
-  # @see _walk
-  def _walk_down!(path, opts={})
-    double = _dup
-    double._parent = self._parent
-
-    node = double._walk_down(path, opts)
-
-    if node
-      self._name = node._name
-      self._parent = node._parent
-      self._data = node._data
-
-      self
-    else
-      raise EPath, "wrong path -- #{path.inspect}"
-    end
-  end
-
-  # @raise EPath
-  #
-  # @see _walk
-  def _walk_up!(path, opts={})
-    double = _dup
-    double._parent = self._parent
-
-    node = double._walk_up(path, opts)
-
-    if node
-      self._name = node._name
-      self._parent = node._parent
-      self._data = node._data
-
-      self
-    else
-      raise EPath, "wrong path -- #{path.inspect}"
-    end
-  end
-
-  # walk along the path. IN PLACE
-  # @see _walk
-  #
-  # @return [Optimism] self
-  def _walk!(path, opts={})
-    return self if %w[_ -_].include?(path)
-
-    path =~ /^-/ ? _walk_up!(path[1..-1], opts) : _walk_down!(path, opts)
   end
 
   # support path

@@ -4,6 +4,8 @@
 	* you can write extensions to parser.
 
 	* change path. '_' is current path, '_r' is root path.
+	* change Optimism#_initilaize(:namespace) without move the node.
+	* rename 'MissingFile' -> 'EMissingFile'
 	* remove 'Optimism#_replace _walk!'
 	* remove 'Optimism.get', 'Optimsm.convert', 'Optimims.[]', 'Optimism#_get', 'Optimism#_child'
 	* remove 'hike' dependency
