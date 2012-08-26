@@ -1,20 +1,5 @@
 require "spec_helper"
 
-
-foo = <<EOF
-_.a = 1
-b.d do
-  _.c = 1
-  _.d = _.c
-  _.e = __.a
-end
-EOF
-
-f = Optimism.new
-f.instance_eval(foo)
-p :f, f
-
-
 Default = Optimism::Parser::Default
 StringBlock2RubyBlock = Default::StringBlock2RubyBlock
 LocalVariable2Method  = Default::LocalVariable2Method

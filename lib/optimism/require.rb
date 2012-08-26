@@ -172,7 +172,7 @@ class Optimism
     private
       # option opts [Hash] :raise 
       def find_file(name, opts={})
-        path = nil
+        path = ""
 
         # ~/.gutenrc  or ./relative/path or ../relative/path
         if name =~ %r!^~|^\.\.?/!
@@ -180,12 +180,13 @@ class Optimism
           path = file if File.exists?(file)
 
         # /absolute/path/to/rc
-        elsif File.absolute_path(name) == name
+        elsif File.absolute_path(name, ".") == name
           path = name if File.exists?(name)
 
         # name
         else
           path = $:.find.with_object("") { |p, memo|
+
             (Optimism.extension.keys+[""]).find { |ext|
               file = File.join(p, name+ext)
               if File.exists? file

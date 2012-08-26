@@ -74,11 +74,13 @@ class Optimism
         end
 
       private
+
         def scan(content, &blk)
           return to_enum(:scan, content) unless blk
           last_indent = 0
 
           content.scan(/(.*?)(\n+|\Z)/).each { |line, newline|
+            a = line.match(/^(\s*)(.*)/)
             _, indents, statement = line.match(/^(\s*)(.*)/).to_a
 
             # indent
@@ -112,9 +114,9 @@ class Optimism
 
             # statement
             if statement =~ /:\s*$/
-              blk.call :block_start, statement.gsub(/\s*:\s*$/, ':')
+              blk.call [:block_start, statement.gsub(/\s*:\s*$/, ':')]
             else
-              blk.call :statement, statement
+              blk.call [:statement, statement]
             end
           }
         end
