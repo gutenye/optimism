@@ -52,7 +52,11 @@ class Optimism
 
         o = Optimism.new(nil, namespace: optimism_opts.delete(:namespace))
         paths.each { |name|
-          path = find_file(name, {raise: opts[:raise]}) 
+          path = find_file(name)
+          if path.empty? 
+            opts[:raise] ? raise(EMissingFile, "can't find file -- #{name.inspect}") : next
+          end
+
           optimism_opts[:parser] = Optimism.extension[File.extname(path)] 
 
           o2 = Optimism.new(File.read(path), optimism_opts)
@@ -170,7 +174,16 @@ class Optimism
       end
 
     private
-      # option opts [Hash] :raise 
+
+      # Find a file.
+      #
+      # @param opts [Hash] options
+      #
+      # @example
+      #
+      #   file_file("does_not_exists")              -> ""
+      #
+      # @return [String] 
       def find_file(name, opts={})
         path = ""
 
@@ -196,8 +209,6 @@ class Optimism
             }
           }
         end
-
-        raise EMissingFile if opts[:raise] and path.empty?
 
         path
       end

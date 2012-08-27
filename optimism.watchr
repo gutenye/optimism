@@ -1,3 +1,5 @@
+# USAGE: bundle exec watchr optimism.watchr
+
 # lib/**/*.rb
 watch %r~lib/(.*)\.rb~ do |m|
 	test "spec/#{m[1]}_spec.rb"
@@ -15,7 +17,7 @@ Signal.trap('QUIT') do
 end
 
 def test(path)
-	cmd = "bundle exec rspec #{path}"
+	cmd = "rspec #{path}"
 	puts cmd
 	system cmd
 end

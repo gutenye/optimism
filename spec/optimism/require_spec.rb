@@ -31,6 +31,11 @@ describe Require do
       Dir.chdir($spec_dir)
       expect(Optimism.find_file("../")).to eq(File.expand_path("../", $spec_dir))
     end
+
+    it "can't find a file" do
+      expect(Optimism.find_file("/does/not/exists")).to eq("")
+    end
+
   end
 
   describe ".require_file" do
@@ -44,8 +49,15 @@ describe Require do
       expect(o).to eq(Optimism({a: {b: 1, c: "foo", d: "bar"}}))
     end
 
-    it "not raise EMissingFile by default" do
-      expect{ Optimism.require_file("data/file_not_exists") }.not_to raise_error(Optimism::EMissingFile)
+    it "skip the file if not found" do 
+      a = Optimism.require_file("/does/not/exists")
+      r = Optimism.new
+
+      expect(a).to eq(r)
+    end
+
+    it "can't find a file with (raise: true) do" do
+      expect{Optimism.require_file("/does/not/exists", raise: true)}.to raise_error(Optimism::EMissingFile)
     end
   end
 

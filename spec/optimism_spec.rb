@@ -533,6 +533,13 @@ c = 4
       it "(path) raise error without default" do
         expect{@a._fetch("z.a")}.to raise_error(KeyError)
       end
+
+      it "([paths])" do
+        a = Optimism({a: 1, b: 2, foo: {a: "1"}}) 
+
+        expect(a._fetch(["foo.a", "a"])).to eq("1")
+        expect(a._fetch(["foo.b", "b"])).to eq(2)
+      end
     end
 
     describe "#_store" do

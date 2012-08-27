@@ -349,8 +349,8 @@ class Optimism
 
   # fetch with path support.
   #
-  # @overload _fetch(key, [default])
-  #   @param [String, Symbol] key
+  # @overload _fetch(key_s, [default])
+  #   @param [Array, String, Symbol] key_s
   # @overload _fetch(path, [default])
   #   @param [String] path
   #
@@ -367,34 +367,52 @@ class Optimism
   #   o._fetch("c.d", nil)        -> nil. path doesn't exist.
   #   o._fetch("a.b", nil)        -> nil. path is wrong
   #
+  #   Default value and individual values.
+  #
+  #   o = Optimism do
+  #     _.username = "foo"
+  #     _.password = "pass"
+  #     google do
+  #       _.username = "bar"
+  #     end
+  #   end
+  #
+  #   o._fetch(["google.username", "username"], nil)     -> "bar"
+  #   o._fetch(["google.password", "password"], nil)     -> "pass"
+  #
   # @param [String] key
   # @return [Object] value
   # @see Hash#fetch
   def _fetch(*args)
     if args.length == 1 then
-      path = args[0]
+      path_s = args[0]
       raise_error = true
     else
-      path, default = args
+      path_s, default = args
     end
+    paths = Util.wrap_array(path_s)
 
-    case path
-    when Symbol
-      base, key = "_", path
-    else
-      base, key = _split_path(path.to_s)
-    end
-
-    node = _walk(base)
-
-    if node && node._has_key?(key) then
-      return node[key]
-    else
-      if raise_error then
-        raise KeyError, "key not found -- #{path.inspect}"
+    paths.each {|path|
+      case path
+      when Symbol
+        base, key = "_", path
       else
-        return default
+        base, key = _split_path(path.to_s)
       end
+
+      node = _walk(base)
+
+      if node && node._has_key?(key) then
+        return node[key]
+      else
+        next
+      end
+    }
+
+    if raise_error then
+      raise KeyError, "key not found -- #{path.inspect}"
+    else
+      return default
     end
   end
 
