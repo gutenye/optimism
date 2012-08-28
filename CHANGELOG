@@ -1,4 +1,4 @@
-*Optimism (3.3.0)*
+*Optimism 3.3.0 (Aug 28, 2012)*
 
 	* add yaml,json support.
 	* you can write extensions to parser.
