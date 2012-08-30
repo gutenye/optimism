@@ -22,8 +22,8 @@ echo;
 echo "`ruby -v`";
 for ((c=1; c<$ruby_version_string_size; c++)); do echo -n "="; done
 echo;
-RBXOPT="-Xrbc.db" bundle install;
-RBXOPT="-Xrbc.db" bundle exec rspec spec 2>&1;'
+bundle install;
+bundle exec rspec spec 2>&1;'
       BASH
     end
   end
