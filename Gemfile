@@ -8,5 +8,6 @@ end
 
 group :development do
   gem "rspec"
-  gem "watchr"
+  gem "guard"
+  gem "guard-rspec"
 end
