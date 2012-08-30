@@ -7,7 +7,7 @@
 | License:       | MIT-LICENSE                                 |
 | Documentation: | http://rubydoc.info/gems/optimism/frames    |
 | Issue Tracker: | https://github.com/GutenYe/optimism/issues  |
-| Platforms:     | Ruby 1.9.3, Rubinius, JRuby                 |
+| Ruby Versions: | Ruby 1.9.3, Rubinius, JRuby                 |
 
 Features
 --------
@@ -85,7 +85,8 @@ examples of how this can be done:
 	p Rc      #=> <#Optimism>
 	p Rc.i.dont.exists #=> <#Optimism>
 	p Rc.foo?  #=> false
-  p Rc._has_key?(:foo) #=> false
+	_guten_
+	p Rc._has_key?(:foo) #=> false
 	p Rc[:foo] #=> nil
 
 ### Variable & Path ###
@@ -173,23 +174,29 @@ Note: for a list of blocked methods, see Optimism::BUILTIN_METHODS
 
 	rc.group #=> <#Optimism>
 
+Install
+----------
+
+	gem install optimism
+
+Development [![Dependency Status](https://gemnasium.com/GutenYe/optimism.png?branch=master)](https://gemnasium.com/GutenYe/optimism) [![Code Climate](https://codeclimate.com/badge.png)](https://codeclimate.com/github/GutenYe/optimism)
+===========
 
 Contributing
-------------
+-------------
 
-* Feel free to join the project and make contributions (by submitting a pull request)
-* Submit any bugs/features/ideas to github issue tracker
+* Submit any bugs/features/ideas to github issue tracker.
+
+Pull requests are very welcome! Please try to follow these simple rules if applicable:
+
+* Please create a topic branch for every separate change you make.
+* Make sure your patches are well tested. All specs run with `rake test:portability` must pass.
 * Coding Style Guide: https://gist.github.com/1105334
 
 Contributors
 ------------
 
-* [contributors](https://github.com/GutenYe/optimism/contributors)
-
-Install
-----------
-
-	gem install optimism
+[https://github.com/GutenYe/optimism/contributors](https://github.com/GutenYe/optimism/contributors)
 
 Resources
 ---------
