@@ -8,6 +8,7 @@
 | Documentation: | http://rubydoc.info/gems/optimism/frames    |
 | Issue Tracker: | https://github.com/GutenYe/optimism/issues  |
 | Ruby Versions: | Ruby 1.9.3, Rubinius, JRuby                 |
+| Support Syntax: | ruby-syntax, string-syntax, yaml, json, ... |
 
 Features
 --------
