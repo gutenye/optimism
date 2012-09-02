@@ -59,6 +59,11 @@ describe Require do
     it "can't find a file with (raise: true) do" do
       expect{Optimism.require_file("/does/not/exists", raise: true)}.to raise_error(Optimism::EMissingFile)
     end
+
+    it "__FILE__ works" do
+      a = Optimism.require("data/rc")
+      expect(a.filename).to eq("#{$spec_dir}/data/rc.rb")
+    end
   end
 
   describe ".require_file!" do

@@ -19,7 +19,7 @@ class Optimism
       end
 
       # implement
-      def self.parse(optimism, content, &blk)
+      def self.parse(optimism, content, opts={}, &blk)
         raise NotImplementedError
       end
     end

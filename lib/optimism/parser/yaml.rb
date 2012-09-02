@@ -1,7 +1,7 @@
 class Optimism
   module Parser
     class YAML < Base
-      def self.parse(optimism, content, &blk)
+      def self.parse(optimism, content, opts={}, &blk)
         optimism << ::YAML.load(content)
       end
     end

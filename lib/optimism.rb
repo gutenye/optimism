@@ -112,17 +112,18 @@ class Optimism
   #   a[:foo] = b            # set b._name and b._parent
   #
   # @param [String,Hash,Optimism] content
-  # @param [Hash] opts
-  # @option opts [Object] :default (nil) default value for Hash
-  # @option opts [Boolean] :symbolize_key (true)
-  # @option opts [String] :namespace (nil)
-  # @option opts [String] :name ("") node name
-  # @option opts [Optimism] :parent (nil) parent node
-  # @option opts [Symbol,Class,Proc] :parser (:default) parser to parse content and block. 
-  def initialize(content=nil, opts={}, &blk)
-    @opts = {symbolize_key: true}.merge(opts)
+  # @param [Hash] options
+  # @option options [Object] :default (nil) default value for Hash
+  # @option options [Boolean] :symbolize_key (true)
+  # @option options [String] :namespace (nil)
+  # @option options [String] :name ("") node name
+  # @option options [String] :filename (nil) filename passed to eval
+  # @option options [Optimism] :parent (nil) parent node
+  # @option options [Symbol,Class,Proc] :parser (:default) parser to parse content and block. 
+  def initialize(content=nil, options={}, &blk)
+    @options = {symbolize_key: true}.merge(options)
 
-    @_parser = case (p=opts[:parser])
+    @_parser = case (p=options[:parser])
                when Symbol
                 Parser.parsers[p].method(:parse)
                when Class
@@ -133,20 +134,20 @@ class Optimism
                  Parser::Default.method(:parse)
                end
 
-    @_name = @opts[:name] || ""
-    @_parent = @opts[:parent]
+    @_name = @options[:name] || ""
+    @_parent = @options[:parent]
 
     case content
     when Hash
-      @_data = _convert_hash(content, @opts)._d
+      @_data = _convert_hash(content, @options)._d
     when Optimism
       @_data = content._d
     else
-      @_data = Hash.new(@opts[:default])
+      @_data = Hash.new(@options[:default])
       _parse! content, &blk if content or blk
     end
 
-    _walk_up(@opts[:namespace], :build => true, :reverse => true) if @opts[:namespace]
+    _walk_up(@options[:namespace], :build => true, :reverse => true) if @options[:namespace]
   end
 
   # Returns true if equal without compare node name.
@@ -165,7 +166,7 @@ class Optimism
   # @params [Hash,Optimism,String] other
   # @return [self]
   def _merge!(other)
-    other = Optimism.new(other, Util.slice(@opts, :default, :symbolize_key, :parser))
+    other = Optimism.new(other, Util.slice(@options, :default, :symbolize_key, :parser))
     
     other._each { |k, v|
       if Optimism === self[k] and Optimism === other[k] 
@@ -205,7 +206,7 @@ class Optimism
   #
   # @return [Optimism] new <#Optimism>
   def _dup
-    o = Optimism.new(nil, @opts)
+    o = Optimism.new(nil, @options)
     o._data = _d.dup
     o._data.each {|k,v| v.instance_variable_set(:@_parent, o) if Optimism === v}
 
@@ -469,7 +470,7 @@ class Optimism
   end
 
   def _parse!(content, &blk)
-    @_parser.call(self, content, &blk)
+    @_parser.call(self, content, {filename: @options[:filename]}, &blk)
   end
 
   # pretty print
@@ -570,7 +571,7 @@ class Optimism
   # @protected
   #
   def _create_child_node(name, content=nil, opts={}, &blk)
-    options = Util.slice(@opts, :default, :symbolize_key, :parser).merge(opts).merge({name: name.to_s, parent: self})
+    options = Util.slice(@options, :default, :symbolize_key, :parser).merge(opts).merge({name: name.to_s, parent: self})
     next_node = Optimism.new(content, options, &blk)
     _data[name.to_sym] = next_node
 
@@ -580,7 +581,7 @@ class Optimism
   # Create a new parent node, link it  and return it.
   # @protected
   def _create_parent_node(child_name, content=nil, opts={}, &blk)
-    options = Util.slice(@opts, :default, :symbolize_key, :parser).merge(opts)
+    options = Util.slice(@options, :default, :symbolize_key, :parser).merge(opts)
     prev_node = Optimism.new(content, options, &blk)
     self._name = child_name.to_s
     self._parent = prev_node
@@ -632,7 +633,7 @@ protected
   end
 
   def _convert_key(key)
-    if @opts[:symbolize_key] and String === key
+    if @options[:symbolize_key] and String === key
       key.to_sym 
     else
       key

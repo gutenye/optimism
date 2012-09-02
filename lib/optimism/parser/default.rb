@@ -161,17 +161,17 @@ class Optimism
         end
       end
 
-      def self.parse(optimism, content, &blk)
-        new(optimism).parse!(content, &blk)
+      def self.parse(optimism, content, opts={}, &blk)
+        new(optimism).parse!(content, opts, &blk)
       end
 
       def initialize(optimism)
         @optimism = optimism
       end
 
-      def parse!(content=nil, &blk)
+      def parse!(content=nil, opts={}, &blk)
         if content
-          eval_string(content)
+          eval_string(content, opts)
         elsif blk
           eval_block(&blk)
         end
@@ -203,11 +203,11 @@ class Optimism
       #       c = 2
       #   EOF
       #
-      def eval_string(content)
+      def eval_string(content, opts={})
         content = StringBlock2RubyBlock.new(content).evaluate 
         content = LocalVariable2Method.new(content).evaluate
 
-        @optimism.instance_eval(content)
+        @optimism.instance_eval(content, opts[:filename] || "(eval)")
 
         @optimism
       end

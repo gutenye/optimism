@@ -1,5 +1,5 @@
 class Optimism::Parser::JSON < Optimism::Parser::Base
-  def self.parse(optimism, content, &blk)
+  def self.parse(optimism, content, opts={}, &blk)
     optimism << ::JSON.parse(content)
   end
 end

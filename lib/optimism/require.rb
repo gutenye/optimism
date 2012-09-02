@@ -58,6 +58,7 @@ class Optimism
           end
 
           optimism_opts[:parser] = Optimism.extension[File.extname(path)] 
+          optimism_opts[:filename] = path
 
           o2 = Optimism.new(File.read(path), optimism_opts)
 
