@@ -10,8 +10,7 @@
 | Ruby Versions: | Ruby 1.9.3, Rubinius                        |
 | Support Syntax: | ruby-syntax, string-syntax, yaml, json, ... |
 
-Features
---------
+**Features**
 
 * Variable and computed attribute support
 * DSL syntax
@@ -23,27 +22,30 @@ Introduction
 
 Load configurations from system and home directory.
 
-	module Foo
-		Rc = Optimism.require %w(/etc/foo ~/.foorc)
-	end
+	Rc = Optimism.require("/etc/foo", "~/.foorc")
 
-### Ruby-stynax ###
+Load configurations from a yaml file.
 
-	Rc = Optimism do |c|
-		c.host = "localhost"
-		c.port = 8080
-		c.mail.stmp.address = "stmp.gmail.com"
+	require "yaml"
+	Rc = Optimism.require("foo.yml")
 
-		my.development do |c|  # namespace
-			c.adapter = "postgresql"
-			c.database = "hello_development"
-			c.username = "foo"
+**Ruby stynax**
+
+	Rc = Optimism do
+		_.host = "localhost"
+		_.port = 8080
+		_.mail.stmp.address = "stmp.gmail.com"
+
+		my.development do                   # namespace
+			_.adapter = "postgresql"
+			_.database = "hello_development"
+			_.username = "foo"
 		end
 
-		c.time = lambda{ |offset| Time.now } # computed attribute
+		_.time = lambda{ |offset| Time.now } # computed attribute
 	end
 
-### String-syntax ###
+**String syntax**
 
 	Rc = Optimism <<-EOF
 		host = "localhost"
@@ -58,7 +60,19 @@ Load configurations from system and home directory.
 		time = lambda{ |offset| Time.now }
 	EOF
 
-### Assignment & Access ###
+**YAML syntax**
+
+	Rc = Optimism <<-EOF, parser: :yaml
+		host: localhost
+		port: 8080
+
+		development:
+			adapter:  postgresql
+			database: hello_development
+			username: foo
+	EOF
+
+### Assignment & Access 
 
 Flexibility has been built in to allow for various ways to assign configuration 
 data values and access the same values within your application. Here are some
@@ -66,29 +80,34 @@ examples of how this can be done:
 
 	# Assignment:
 	Rc = Optimism.new
-	Rc.age = 1     # It's same as Rc[:age] = 1
+	Rc.age = 1     
 	Rc[:age] = 2
 	Rc["age"] = 3
-	# Access:
-	Rc.age    #=> 2 # It's same as Rc[:age]
-	Rc[:age]  #=> 2
-	Rc["age"] #=> 3
-	Rc.age?   #=> true
 
+	# Access:
+	Rc.age           #-> 2 
+	Rc[:age]         #-> 2
+	Rc["age"]        #-> 3
+	Rc.age?          #-> true
+
+	Rc._fetch("age", nil)
+	Rc._fetch(["my.age", "age"], nil)
+
+	# check
+	Rc._has_key?("age")
 
 ### Node ###
 
 	Rc = Optimism do
 		a.b = 1
 	end
-	p Rc.a.b  #=> <#Fixnum 1>
-	p Rc.a    #=> <#Optimism>
-	p Rc      #=> <#Optimism>
-	p Rc.i.dont.exists #=> <#Optimism>
-	p Rc.foo?  #=> false
-	_guten_
-	p Rc._has_key?(:foo) #=> false
-	p Rc[:foo] #=> nil
+	p Rc.a.b               #-> <#Fixnum 1>
+	p Rc.a                 #-> <#Optimism>
+	p Rc                   #-> <#Optimism>
+	p Rc.i.dont.exists     #-> <#Optimism>
+	p Rc.foo?              #-> false
+	p Rc._has_key?(:foo)   #-> false
+	p Rc[:foo]             #-> nil
 
 ### Variable & Path ###
 
@@ -101,28 +120,36 @@ examples of how this can be done:
 			friend:
 				age = 3
 
-				my_friend_age = age      #=> 3
-				my_age        = __.age   #=> 2  __ is relative up to 1 times
-				root_age      = ___.age  #=> 1  ___ and so on is relative up to 2 and so on times
-				root_age      = _.age    #=> 1 _ is root
-				Optimism.p _.age         # this won't work, path only woks in assignment
+				age1 = age               #-> 3
+				age2 = _.age             #-> 3  _ is current node
+				age3 = __.age            #-> 2  __ is relative up to 1 times
+				age4 = ___.age           #-> 1  ___ and so on is relative up to 2 and so on times
+				age5 = _r.age            #-> 1  _r is root node
 	EOF
 	
 
+### Config inheritance
+
+	username = foo
+	github:
+		username = bar
+
+	p Rc._fetch(["github.username", "username"], nil)   #-> first one avalibale.
+
 ### Computed attribute ###
 
-Computed attribute is a lamda object, you don't need to invoke `#call` expilict.
+Computed attribute is a lamda object, but you don't need to invoke `#call` expilict.
 
-	Rc = Optimism do |c|
-		c.time = lambda{ |n| Time.now }
+	Rc = Optimism do
+		_.time = lambda{ Time.now }
 	end
-	p Rc.time   # => 2011-08-26 16:29:16 -0800
-	p Rc[:time] # => <#Proc>
+	p Rc.time            #-> 2011-08-26 16:29:16 -0800
+	p Rc[:time]          #-> <#Proc>
 
 ### Semantic ###
 
-	Optimism do |c|
-		c.start = yes
+	Optimism do
+		_.start = yes
 	end
 
 Note: for a list of semantic methods, see Optimism::Semantics
@@ -131,11 +158,11 @@ Note: for a list of semantic methods, see Optimism::Semantics
 
 Internal, datas are stored as a Hash. You can access all hash methods via `_method` way.
 
-	Rc = Optimism do |c|
-		c.a = 1
+	Rc = Optimism do
+		_.a = 1
 	end
-	p Rc._data #=> {:a => 1}
-	p Rc._keys #=> [:a]
+	p Rc._data        #-> {:a => 1}
+	p Rc._keys        #-> [:a]
 
 ### Load configurations ###
 
@@ -182,6 +209,24 @@ Install
 
 Development [![Dependency Status](https://gemnasium.com/GutenYe/optimism.png?branch=master)](https://gemnasium.com/GutenYe/optimism) [![Code Climate](https://codeclimate.com/badge.png)](https://codeclimate.com/github/GutenYe/optimism)
 ===========
+
+Write a new parser 
+-------------------
+
+\# my_parser.rb
+
+	class MyParser < Base
+		def self.parse(optimism, content, opts={}, &blk)
+			optimism << YAML.load(content)
+		end
+	end
+
+	Optimism.add_extension ".yml", MyParser
+
+use the parser
+
+	Optimism.require("foo.yml")
+	Optimsm("content", parser: :myparser)
 
 Contributing
 -------------
