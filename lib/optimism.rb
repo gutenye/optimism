@@ -469,7 +469,7 @@ class Optimism
     end
   end
 
-  def _parse!(content, &blk)
+  def _parse!(content=nil, &blk)
     @_parser.call(self, content, {filename: @options[:filename]}, &blk)
   end
 
@@ -541,12 +541,24 @@ class Optimism
     ## a.c  # create new <#Optimism> if no :c 
     ##
 
-    # p Rc.a.b.c #=> 1
-    # p Rc.a.b.c('bar') 
+    # p Rc.a             #=> 1
+    # p Rc.compute_attr  #=> lambda{}.call  
+    #
+    # p Rc.node    
+    # node do
+    #  _.a = lambda{ Time.now }
+    #  _.b = 2
+    # end
     #
     elsif _data.has_key?(name)
       value = _data[name]
-      return (Proc === value && value.lambda?) ? value.call(*args) : value
+      if Proc === value && value.lambda? 
+        value.call(*args)
+      elsif Optimism === value && (blk || !args.empty?)
+        value._parse!(*args, &blk)
+      else
+        value
+      end
 
     # p Rc.a.b.c #=> create new <#Optimism>
     #

@@ -309,7 +309,6 @@ c = 4
     end
 	end
 
-
 	context "path" do
     before :all do
       @a = Optimism({b: {c: {d: 2}}})
@@ -642,6 +641,40 @@ c = 4
       end
 
       expect(a.is_ok).to be_true
+    end
+  end
+
+  context "(complete example)" do
+    describe "ruby-syntax" do
+      it "appear more than once" do
+        a = Optimism do
+          foo do
+            _.a = 1
+          end
+
+          foo do
+            _.a = 2
+          end
+        end
+        b = Optimism({foo: {a: 2}})
+
+        expect(a).to eq(b)
+      end
+    end
+
+    describe "string-syntax" do
+      it "appear more than once" do
+        a = Optimism <<-EOF
+          foo:
+            _.a = 1
+
+          foo:
+            _.a = 2
+        EOF
+        b = Optimism({foo: {a: 2}})
+
+        expect(a).to eq(b)
+      end
     end
   end
 end

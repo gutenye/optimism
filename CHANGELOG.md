@@ -1,7 +1,8 @@
-## 3.3.1 (x)
+## 3.3.1 (Sep 9, 2012)
 
 Bugfixes
 
+  - Configuration: same key can appear more than once.
   - `__FILE__` works in Optimism.require(file)
 
 ## 3.3.0 (Aug 29, 2012)
