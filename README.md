@@ -247,10 +247,8 @@ Contributors
 Resources
 ---------
 
-* [konfigurator](https://github.com/nu7hatch/konfigurator) Small and flexible configuration toolkit inspired i.a. by Sinatra settings
+* [confstruct](https://github.com/mbklein/confstruct) Yet another hash/struct-like configuration object for Ruby
 * [configatron](https://github.com/markbates/configatron) A super cool, simple, and feature rich configuration system for Ruby apps 
-* [simpleconfig](https://github.com/lukeredpath/simpleconfig) make application-wide configuration settings easy to set and access in an object-oriented fashion
-* [configuration](https://github.com/ahoward/configuration) pure ruby scoped configuration files 
 
 Copyright
 ---------
