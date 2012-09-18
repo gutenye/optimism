@@ -228,21 +228,14 @@ use the parser
 	Optimism.require("foo.yml")
 	Optimsm("content", parser: :myparser)
 
-Contributing
+Contributing 
 -------------
 
 * Submit any bugs/features/ideas to github issue tracker.
 
-Pull requests are very welcome! Please try to follow these simple rules if applicable:
+Please see [Contibution Documentation](https://github.com/GutenYe/optimism/blob/master/CONTRIBUTING.md).
 
-* Please create a topic branch for every separate change you make.
-* Make sure your patches are well tested. All specs run with `rake test:portability` must pass.
-* Coding Style Guide: https://gist.github.com/1105334
-
-Contributors
-------------
-
-[https://github.com/GutenYe/optimism/contributors](https://github.com/GutenYe/optimism/contributors)
+A list of [Contributors](https://github.com/GutenYe/optimism/contributors).
 
 Resources
 ---------
